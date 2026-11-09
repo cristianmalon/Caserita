@@ -26,3 +26,4 @@ dist-ssr
 # Salidas de compilación y archivos para subir a mano
 dist-artifact
 *.zip
+*.whl
