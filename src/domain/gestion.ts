@@ -1,6 +1,6 @@
 import { BODEGA_ID, type BodegaDB, ahora, nuevoId } from '../data/db';
-import { ErrorDeNegocio, redondear } from './operaciones';
-import type { Cliente, Conteo, Producto, Seccion } from './types';
+import { ErrorDeNegocio, diaLocal, redondear } from './operaciones';
+import type { Cliente, Conteo, LineaVenta, Producto, Seccion, Venta } from './types';
 
 const COLORES = ['#F2A33A', '#3B82C4', '#D9534F', '#1B7F45', '#8B6B4A', '#7A5BA6', '#2A9D8F'];
 
@@ -283,4 +283,60 @@ export async function resumenDeDeudas(db: BodegaDB): Promise<DeudaDeCliente[]> {
     }
     return { cliente, deuda: redondear(deuda), desde };
   });
+}
+
+// ---------- Caja: ventas del día ----------
+
+export interface VentaConDetalle {
+  venta: Venta;
+  lineas: LineaVenta[];
+  cliente?: Cliente;
+}
+
+/** Ventas de un día (hora local), más nuevas primero, con sus productos. Incluye las anuladas. */
+export async function ventasDelDia(db: BodegaDB, dia: string): Promise<VentaConDetalle[]> {
+  const ventas = (await db.ventas.toArray())
+    .filter((v) => diaLocal(v.fecha) === dia)
+    .sort((a, b) => b.fecha.localeCompare(a.fecha));
+  const [lineas, clientes] = await Promise.all([db.lineas.toArray(), db.clientes.toArray()]);
+  return ventas.map((venta) => ({
+    venta,
+    lineas: lineas.filter((l) => l.ventaId === venta.id),
+    cliente: clientes.find((c) => c.id === venta.clienteId),
+  }));
+}
+
+// ---------- Respaldo ----------
+
+const TABLAS = ['productos', 'secciones', 'clientes', 'ventas', 'lineas', 'movimientos', 'abonos', 'conteos'] as const;
+
+export interface Respaldo {
+  app: 'caserita';
+  version: 1;
+  creadoEn: string;
+  datos: Record<(typeof TABLAS)[number], unknown[]>;
+}
+
+export async function exportarRespaldo(db: BodegaDB): Promise<Respaldo> {
+  const datos = {} as Respaldo['datos'];
+  for (const t of TABLAS) datos[t] = await db.table(t).toArray();
+  return { app: 'caserita', version: 1, creadoEn: ahora(), datos };
+}
+
+/** Reemplaza TODO lo que hay en el celular por el respaldo. Valida antes de borrar nada. */
+export async function restaurarRespaldo(db: BodegaDB, bruto: unknown): Promise<number> {
+  const r = bruto as Partial<Respaldo> | null;
+  if (!r || r.app !== 'caserita' || r.version !== 1 || typeof r.datos !== 'object' || !r.datos) {
+    throw new ErrorDeNegocio('Este archivo no es un respaldo de Caserita');
+  }
+  for (const t of TABLAS) {
+    if (!Array.isArray(r.datos[t])) throw new ErrorDeNegocio('El respaldo está incompleto');
+  }
+  await db.transaction('rw', TABLAS.map((t) => db.table(t)), async () => {
+    for (const t of TABLAS) {
+      await db.table(t).clear();
+      await db.table(t).bulkAdd(r.datos![t]);
+    }
+  });
+  return r.datos.productos.length;
 }

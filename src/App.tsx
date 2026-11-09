@@ -1,5 +1,9 @@
 import { Route, Routes } from 'react-router-dom';
 import { CarritoProvider } from './carrito';
+import { Ajustes } from './pages/Ajustes';
+import { Caja } from './pages/Caja';
+import { Conteo } from './pages/Conteo';
+import { ContarSeccion } from './pages/ContarSeccion';
 import { Cobrar } from './pages/Cobrar';
 import { ElegirCliente } from './pages/ElegirCliente';
 import { Efectivo } from './pages/Efectivo';
@@ -11,6 +15,8 @@ import { Inventario } from './pages/Inventario';
 import { ProductoDetalle } from './pages/ProductoDetalle';
 import { ProductoNuevo } from './pages/ProductoNuevo';
 import { Secciones } from './pages/Secciones';
+import { ResultadoConteo } from './pages/ResultadoConteo';
+import { Todo } from './pages/Todo';
 import { Vender } from './pages/Vender';
 import { Pronto } from './ui';
 
@@ -30,7 +36,12 @@ export function App() {
         <Route path="/producto/:id" element={<ProductoDetalle />} />
         <Route path="/ingreso" element={<Ingreso />} />
         <Route path="/secciones" element={<Secciones />} />
-        <Route path="/todo" element={<Pronto titulo="Todo mi negocio" />} />
+        <Route path="/contar" element={<ContarSeccion />} />
+        <Route path="/contar/:id" element={<Conteo />} />
+        <Route path="/contar/:id/resultado" element={<ResultadoConteo />} />
+        <Route path="/caja" element={<Caja />} />
+        <Route path="/ajustes" element={<Ajustes />} />
+        <Route path="/todo" element={<Todo />} />
         <Route path="*" element={<Pronto titulo="No encontrada" />} />
       </Routes>
     </CarritoProvider>

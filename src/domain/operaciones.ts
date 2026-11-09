@@ -216,6 +216,9 @@ export async function resumenDeCaja(db: BodegaDB, dia: string) {
   );
   const suma = (m: MetodoPago) =>
     redondear(ventas.filter((v) => v.metodo === m).reduce((s, v) => s + v.total, 0));
+  const idsVigentes = new Set(ventas.map((v) => v.id));
+  const lineas = (await db.lineas.toArray()).filter((l) => idsVigentes.has(l.ventaId));
+  const ganancia = redondear(lineas.reduce((s, l) => s + l.cantidad * (l.precio - l.costo), 0));
   const abonos = (await db.abonos.toArray()).filter((a) => diaLocal(a.fecha) === dia);
   const cobrosDeFiados = redondear(abonos.reduce((s, a) => s + a.monto, 0));
   const efectivo = suma('efectivo');
@@ -226,6 +229,7 @@ export async function resumenDeCaja(db: BodegaDB, dia: string) {
     fiado: suma('fiado'),
     cobrosDeFiados,
     efectivoEnCaja: redondear(efectivo + cobrosDeFiados),
+    ganancia,
     cantidadVentas: ventas.length,
   };
 }

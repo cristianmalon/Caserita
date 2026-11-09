@@ -146,3 +146,48 @@ describe('resumenDeDeudas', () => {
     expect(de(sinDeuda.id)).toMatchObject({ deuda: 0, desde: null });
   });
 });
+
+import { anularVenta, resumenDeCaja, diaLocal } from './operaciones';
+import { exportarRespaldo, restaurarRespaldo, ventasDelDia } from './gestion';
+
+describe('caja del día', () => {
+  it('calcula la ganancia y excluye las ventas anuladas; el detalle sí las incluye', async () => {
+    const rosa = await crearCliente(db, { nombre: 'Rosa' });
+    const a = await producto('Leche', 20, undefined, 3); // precio 5, costo 3 => 2 por unidad
+    const v1 = await registrarVenta(db, { items: [{ productoId: a, cantidad: 4, precio: 5 }], metodo: 'efectivo' });
+    const v2 = await registrarVenta(db, { items: [{ productoId: a, cantidad: 2, precio: 4 }], metodo: 'fiado', clienteId: rosa.id }); // precio rebajado: 1 por unidad
+    const hoy = diaLocal(new Date());
+    expect((await resumenDeCaja(db, hoy)).ganancia).toBe(10); // 4*2 + 2*1
+    await anularVenta(db, v2.id);
+    expect((await resumenDeCaja(db, hoy)).ganancia).toBe(8);
+
+    const lista = await ventasDelDia(db, hoy);
+    expect(lista).toHaveLength(2);
+    expect(lista.find((x) => x.venta.id === v2.id)).toMatchObject({ venta: { anulada: true }, cliente: { nombre: 'Rosa' } });
+    expect(lista.find((x) => x.venta.id === v1.id)!.lineas).toHaveLength(1);
+    expect(await ventasDelDia(db, '2000-01-01')).toEqual([]);
+  });
+});
+
+describe('respaldo', () => {
+  it('exporta y restaura todo en otra base, y rechaza archivos que no son respaldos', async () => {
+    const s = await crearSeccion(db, 'Abarrotes');
+    const p = await producto('Arroz', 10, s.id);
+    const rosa = await crearCliente(db, { nombre: 'Rosa' });
+    await registrarVenta(db, { items: [{ productoId: p, cantidad: 2, precio: 5 }], metodo: 'fiado', clienteId: rosa.id });
+    const copia = JSON.parse(JSON.stringify(await exportarRespaldo(db)));
+
+    const otra = new BodegaDB(`test-${nuevoId()}`);
+    await otra.open();
+    await otra.productos.add({ id: 'viejo', bodegaId: BODEGA_ID, nombre: 'Se borra', costo: 1, precio: 2, stock: 1, minimo: 5, actualizadoEn: ahora() });
+    expect(await restaurarRespaldo(otra, copia)).toBe(1);
+    expect(await otra.productos.get('viejo')).toBeUndefined();
+    expect((await otra.productos.get(p))!.stock).toBe(8);
+    expect(await otra.ventas.count()).toBe(1);
+    expect(await otra.lineas.count()).toBe(1);
+
+    await expect(restaurarRespaldo(otra, { hola: 1 })).rejects.toThrow('no es un respaldo');
+    await expect(restaurarRespaldo(otra, { app: 'caserita', version: 1, datos: { productos: [] } })).rejects.toThrow('incompleto');
+    expect((await otra.productos.get(p))!.stock).toBe(8); // un archivo inválido no borra nada
+  });
+});
