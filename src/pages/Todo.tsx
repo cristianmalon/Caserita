@@ -25,6 +25,7 @@ const OPCIONES: Opcion[] = [
   o('Fiados', 'Quién me debe', '/fiados', 'gente', AZUL),
   o('Caja del día', 'Cuánto entró, y anular ventas', '/caja', 'billete', VERDE),
   o('Producto nuevo', 'Agregar a mi lista', '/producto/nuevo', 'caja', AMBAR),
+  o('Importar productos', 'Desde Excel o CSV', '/importar', 'cuaderno', AZUL),
   o('Respaldo', 'Guarda tus datos', '/ajustes', 'cuaderno', ROSA),
 ];
 
@@ -35,8 +36,8 @@ export function Todo() {
       <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--suave)' }}>Todo lo que necesitas para llevar tu bodega, en un solo lugar.</div>
 
       <nav style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }} aria-label="Secciones de la app">
-        {OPCIONES.map((op) => (
-          <Link key={op.a} to={op.a} className="mosaico" style={{ background: op.fondo, color: op.tinta, justifyContent: 'space-between', minHeight: 116 }}>
+        {OPCIONES.map((op, i) => (
+          <Link key={op.a} to={op.a} className="mosaico" style={{ background: op.fondo, color: op.tinta, justifyContent: 'space-between', minHeight: 116, gridColumn: OPCIONES.length % 2 === 1 && i === OPCIONES.length - 1 ? '1 / -1' : undefined }}>
             <Icono nombre={op.icono} tam={32} />
             <span>
               <b style={{ display: 'block', fontSize: 19, lineHeight: 1.1 }}>{op.titulo}</b>

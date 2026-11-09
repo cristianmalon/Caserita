@@ -1,6 +1,6 @@
 # Caserita
 
-App web (PWA) para llevar una bodega de barrio: vender escaneando con la cámara o buscando, cobrar en efectivo con vuelto o por Yape, fiados con abonos y recordatorio por WhatsApp, inventario con ingreso de mercadería, conteo por sección a ciegas, caja del día con anulación de ventas y respaldo de los datos.
+App web (PWA) para llevar una bodega de barrio: vender escaneando con la cámara o buscando, cobrar en efectivo con vuelto o por Yape, fiados con abonos y recordatorio por WhatsApp, inventario con ingreso de mercadería, conteo por sección a ciegas, caja del día con anulación de ventas, productos por peso, favoritos y venta rápida, importación de productos desde Excel/CSV, y respaldo de los datos con aviso.
 
 Los datos se guardan en el celular (IndexedDB), así que funciona sin internet. Cada registro lleva `bodegaId` e ids únicos para poder sincronizar y replicar en más bodegas más adelante.
 

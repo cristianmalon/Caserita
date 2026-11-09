@@ -9,6 +9,7 @@ import { ElegirCliente } from './pages/ElegirCliente';
 import { Efectivo } from './pages/Efectivo';
 import { Fiados } from './pages/Fiados';
 import { Fiar } from './pages/Fiar';
+import { Importar } from './pages/Importar';
 import { Ingreso } from './pages/Ingreso';
 import { Inicio } from './pages/Inicio';
 import { Inventario } from './pages/Inventario';
@@ -35,6 +36,7 @@ export function App() {
         <Route path="/inventario" element={<Inventario />} />
         <Route path="/producto/:id" element={<ProductoDetalle />} />
         <Route path="/ingreso" element={<Ingreso />} />
+        <Route path="/importar" element={<Importar />} />
         <Route path="/secciones" element={<Secciones />} />
         <Route path="/contar" element={<ContarSeccion />} />
         <Route path="/contar/:id" element={<Conteo />} />

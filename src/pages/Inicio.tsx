@@ -75,13 +75,19 @@ export function Inicio() {
       </div>
 
       {datos && !datos.hayProductos ? (
-        <div className="tarjeta" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <b style={{ fontSize: 18 }}>Aún no tienes productos</b>
-          <span style={{ color: 'var(--suave)', fontWeight: 600 }}>Carga unos de ejemplo para probar una venta.</span>
-          <button className="boton" onClick={() => cargarDatosDeEjemplo(db)}>
-            Cargar productos de ejemplo
+        <section className="tarjeta" aria-label="Bienvenida" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <b style={{ fontSize: 22 }}>¡Bienvenido a Caserita!</b>
+          <span style={{ color: 'var(--suave)', fontWeight: 600 }}>Empecemos cargando lo que vendes. Elige cómo:</span>
+          <Link className="boton" to="/importar" style={{ minHeight: 64, fontSize: 19 }}>
+            Traer mi lista desde Excel
+          </Link>
+          <Link className="boton claro" to="/producto/nuevo" style={{ minHeight: 56, fontSize: 18, borderRadius: 18 }}>
+            Agregar uno por uno
+          </Link>
+          <button onClick={() => cargarDatosDeEjemplo(db)} style={{ border: 0, background: 'none', color: 'var(--suave)', fontWeight: 800, textDecoration: 'underline', padding: 10, fontSize: 16 }}>
+            Solo quiero probar con productos de ejemplo
           </button>
-        </div>
+        </section>
       ) : (
         <Link className="boton inicio-grande" to="/vender">
           <Icono nombre="carrito" tam={52} />
