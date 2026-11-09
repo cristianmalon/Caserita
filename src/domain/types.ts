@@ -80,3 +80,20 @@ export interface ItemCarrito {
   cantidad: number;
   precio: number; // editable al vender ("solo esta venta")
 }
+
+/** Una línea contada: cuánto había según el sistema en ese momento y cuánto contó la persona. */
+export interface LineaConteo {
+  contado: number;
+  sistema: number;
+}
+
+/** Conteo de inventario por sección (o de todo si `seccionId` es null). Se guarda solo. */
+export interface Conteo {
+  id: Id;
+  bodegaId: Id;
+  seccionId: Id | null;
+  estado: 'abierto' | 'aplicado';
+  creadoEn: string;
+  aplicadoEn?: string;
+  lineas: Record<Id, LineaConteo>;
+}

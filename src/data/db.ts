@@ -2,6 +2,7 @@ import Dexie, { type EntityTable } from 'dexie';
 import type {
   Abono,
   Cliente,
+  Conteo,
   LineaVenta,
   Movimiento,
   Producto,
@@ -20,6 +21,7 @@ export class BodegaDB extends Dexie {
   lineas!: EntityTable<LineaVenta, 'id'>;
   movimientos!: EntityTable<Movimiento, 'id'>;
   abonos!: EntityTable<Abono, 'id'>;
+  conteos!: EntityTable<Conteo, 'id'>;
 
   constructor(nombre = 'mi-bodega') {
     super(nombre);
@@ -31,6 +33,10 @@ export class BodegaDB extends Dexie {
       lineas: 'id, ventaId, productoId',
       movimientos: 'id, productoId, fecha',
       abonos: 'id, clienteId, fecha',
+    });
+    // v2: conteos de inventario por sección
+    this.version(2).stores({
+      conteos: 'id, estado, seccionId',
     });
   }
 }

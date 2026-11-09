@@ -30,7 +30,7 @@ export function Efectivo() {
     if (pagoCon === null) return;
     setGuardando(true);
     try {
-      await registrarVenta(db, { items: carrito.items, metodo: 'efectivo', pagoCon });
+      await registrarVenta(db, { items: carrito.items, metodo: 'efectivo', pagoCon, clienteId: carrito.clienteId ?? undefined });
       terminado.current = true;
       navegar('/', { replace: true, state: { mensaje: `Venta registrada: ${soles(total)}` } });
       carrito.vaciar();

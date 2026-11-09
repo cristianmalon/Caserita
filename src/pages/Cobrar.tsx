@@ -14,13 +14,17 @@ export function Cobrar() {
   const [guardando, setGuardando] = useState(false);
   // Tras cobrar, el carrito queda vacío: sin esta marca la pantalla se redirigiría a Vender.
   const terminado = useRef(false);
+  const cliente = useLiveQuery(
+    async () => (carrito.clienteId ? db.clientes.get(carrito.clienteId) : undefined),
+    [carrito.clienteId],
+  );
 
   if (carrito.items.length === 0) return terminado.current ? null : <Navigate to="/vender" replace />;
 
   const cobrarDigital = async () => {
     setGuardando(true);
     try {
-      await registrarVenta(db, { items: carrito.items, metodo: 'digital' });
+      await registrarVenta(db, { items: carrito.items, metodo: 'digital', clienteId: carrito.clienteId ?? undefined });
       const total = carrito.total;
       terminado.current = true;
       navegar('/', { replace: true, state: { mensaje: `Venta registrada: ${soles(total)}` } });
@@ -45,6 +49,12 @@ export function Cobrar() {
           <b style={{ fontSize: 42, color: 'var(--verde)' }}>{soles(carrito.total)}</b>
         </div>
       </div>
+
+      <Link to="/cliente" state={{ siguiente: '/cobrar' }} className="fila" style={{ minHeight: 56 }}>
+        <Icono nombre="gente" />
+        <span className="nombre">{cliente ? cliente.nombre : 'Cliente general'}</span>
+        <span style={{ color: 'var(--verde)', fontWeight: 800, textDecoration: 'underline' }}>{cliente ? 'Cambiar' : 'Elegir'}</span>
+      </Link>
 
       {error && <div className="error" role="alert">{error}</div>}
 
