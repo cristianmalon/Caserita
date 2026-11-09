@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCarrito } from '../carrito';
 import { db } from '../data/db';
 import { soles } from '../formato';
-import { Cabecera } from '../ui';
+import { Cabecera, Icono } from '../ui';
 
 const normalizar = (s: string) =>
   s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
@@ -52,7 +52,8 @@ export function Vender() {
     <main className="pantalla">
       <Cabecera titulo="Vender" volver="/" />
 
-      <form onSubmit={alEnviar}>
+      <form onSubmit={alEnviar} className="campo-con-icono">
+        <Icono nombre="lupa" />
         <label className="sr-only" htmlFor="buscar">Buscar producto o escribir código</label>
         <input
           id="buscar"
@@ -95,8 +96,9 @@ export function Vender() {
       ) : (
         <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }} aria-label="Productos de la venta">
           {carrito.items.length === 0 && (
-            <div className="tarjeta" style={{ color: 'var(--suave)', fontWeight: 700 }}>
-              Escribe el nombre o el código del producto para empezar.
+            <div className="vacio">
+              <div className="circulo"><Icono nombre="carrito" tam={34} /></div>
+              Tu venta está vacía.<br />Escribe el nombre o el código de un producto para empezar.
             </div>
           )}
           {carrito.items.map((item) => {

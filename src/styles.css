@@ -19,6 +19,7 @@
 
 body {
   margin: 0;
+  font-variant-numeric: tabular-nums;
   background: var(--crema);
   color: var(--tinta);
   font-family: 'Nunito', system-ui, sans-serif;
@@ -106,3 +107,34 @@ button { cursor: pointer; }
   font-size: 22px; font-weight: 800;
 }
 .billete[aria-pressed='true'] { background: var(--tinta); color: #fff; border-color: var(--tinta); }
+
+/* ---- Pulido: reacción al tocar, foco visible y entrada suave ---- */
+.boton, .paso, .billete, .atras, .fila, .mosaico {
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.15s ease;
+}
+.boton:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25); }
+.boton.claro:active:not(:disabled), .boton.borde:active:not(:disabled) { box-shadow: none; }
+.paso:active, .billete:active, .atras:active { transform: scale(0.94); }
+.mosaico:active, button.fila:active { transform: scale(0.98); }
+
+:focus-visible { outline: 3px solid var(--tinta); outline-offset: 3px; border-radius: 12px; }
+.campo:focus-visible { outline: 3px solid var(--verde); outline-offset: 0; }
+
+@keyframes entrada { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.pantalla { animation: entrada 0.18s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .pantalla { animation: none; }
+  .boton, .paso, .billete, .atras, .fila, .mosaico { transition: none; }
+}
+
+.marca { display: flex; align-items: center; gap: 12px; }
+.marca img { width: 48px; height: 48px; border-radius: 14px; box-shadow: 0 2px 0 var(--linea); }
+.marca h1 { margin: 0; font-size: 30px; font-weight: 800; line-height: 1; }
+.marca small { display: block; font-size: 15px; font-weight: 700; color: var(--suave); margin-bottom: 2px; }
+
+.campo-con-icono { position: relative; }
+.campo-con-icono svg { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--suave); }
+.campo-con-icono .campo { padding-left: 50px; }
+
+.vacio { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 28px 16px; color: var(--suave); font-weight: 700; font-size: 17px; }
+.vacio .circulo { width: 72px; height: 72px; border-radius: 50%; background: var(--verde-claro); color: var(--verde); display: flex; align-items: center; justify-content: center; }

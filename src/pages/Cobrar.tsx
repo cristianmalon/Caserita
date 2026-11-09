@@ -5,7 +5,7 @@ import { useCarrito } from '../carrito';
 import { db } from '../data/db';
 import { ErrorDeNegocio, registrarVenta } from '../domain/operaciones';
 import { soles } from '../formato';
-import { Cabecera } from '../ui';
+import { Cabecera, Icono } from '../ui';
 
 export function Cobrar() {
   const carrito = useCarrito();
@@ -50,11 +50,16 @@ export function Cobrar() {
 
       <b style={{ fontSize: 18 }}>¿Cómo paga?</b>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <Link className="boton pago-btn" to="/cobrar/efectivo">Efectivo</Link>
+        <Link className="boton pago-btn" to="/cobrar/efectivo">
+          <Icono nombre="billete" tam={36} />
+          Efectivo
+        </Link>
         <button className="boton pago-btn" disabled={guardando} onClick={cobrarDigital} style={{ background: 'var(--azul-claro)', color: 'var(--azul-tinta)', boxShadow: '0 5px 0 #b7d3f5' }}>
+          <Icono nombre="celular" tam={36} />
           Yape o transferencia
         </button>
         <Link className="boton pago-btn" to="/fiado" style={{ background: 'var(--ambar)', color: 'var(--ambar-tinta)', boxShadow: '0 5px 0 #f0c777' }}>
+          <Icono nombre="cuaderno" tam={36} />
           Fiado
         </Link>
       </div>
