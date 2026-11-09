@@ -4,6 +4,7 @@ import { db } from '../data/db';
 import { cargarDatosDeEjemplo } from '../data/demo';
 import { deudaDeCliente, diaLocal, resumenDeCaja } from '../domain/operaciones';
 import { soles } from '../formato';
+import { fechaPrimerUso, fechaUltimoRespaldo, necesitaRespaldo } from '../respaldo';
 import { Icono } from '../ui';
 
 const saludo = (hora: number) =>
@@ -14,6 +15,13 @@ export function Inicio() {
   const ahora = new Date();
   const larga = ahora.toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' });
   const fecha = larga.charAt(0).toUpperCase() + larga.slice(1); // «lunes, 9 de noviembre» → «Lunes, 9 de noviembre»
+
+  const respaldo = necesitaRespaldo({
+    ahora,
+    ultimoRespaldo: fechaUltimoRespaldo(),
+    primerUso: fechaPrimerUso(),
+    hayDatos: true, // se afina abajo con los datos reales
+  });
 
   const datos = useLiveQuery(async () => {
     const [caja, productos, clientes] = await Promise.all([
@@ -40,6 +48,13 @@ export function Inicio() {
           <h1>Caserita</h1>
         </div>
       </div>
+
+      {datos?.hayProductos && respaldo.necesita && (
+        <Link to="/ajustes" className="aviso" style={{ display: 'block' }}>
+          {respaldo.dias === null ? 'Aún no guardas un respaldo de tus datos.' : `Hace ${respaldo.dias} días que no guardas un respaldo.`}{' '}
+          <u>Guárdalo ahora</u>
+        </Link>
+      )}
 
       {state?.mensaje && (
         <div className="aviso" role="status" style={{ background: 'var(--verde-claro)', color: '#1e4d12' }}>
