@@ -1,13 +1,41 @@
 import { BODEGA_ID, type BodegaDB, ahora, nuevoId } from '../data/db';
-import type { ItemCarrito, MetodoPago, Venta } from './types';
+import type { ItemCarrito, MetodoPago, Unidad, Venta } from './types';
 
 /** Evita errores de coma flotante (0.3 * 4 = 1.2000000000000002). */
 export const redondear = (n: number): number => Math.round((n + Number.EPSILON) * 100) / 100;
 
+/** Cada línea se redondea a centavos y luego se suma, igual que lo que se ve en pantalla. */
+export const totalLinea = (cantidad: number, precio: number): number => redondear(cantidad * precio);
+
 export const totalCarrito = (items: ItemCarrito[]): number =>
-  redondear(items.reduce((suma, i) => suma + i.cantidad * i.precio, 0));
+  redondear(items.reduce((suma, i) => suma + totalLinea(i.cantidad, i.precio), 0));
 
 export class ErrorDeNegocio extends Error {}
+
+/** El producto «Varios» de la venta rápida (venta sin producto del catálogo). */
+export const ID_VARIOS = 'varios';
+
+/** Cantidades por peso con hasta 3 decimales (gramos), sin errores de coma flotante. */
+export const redondearCantidad = (n: number): number => Math.round((n + Number.EPSILON) * 1000) / 1000;
+
+export const unidadDe = (p: { unidad?: Unidad }): Unidad => p.unidad ?? 'unidad';
+
+/**
+ * Valida una cantidad según cómo se cuenta el producto: enteros por unidad,
+ * hasta 3 decimales por kilo. Con `permitirCero` sirve para stock; sin él, para vender o ingresar.
+ */
+export function validarCantidad(p: { unidad?: Unidad; nombre?: string }, cantidad: number, permitirCero = false) {
+  const donde = p.nombre ? ` de ${p.nombre}` : '';
+  if (!Number.isFinite(cantidad) || cantidad < 0 || (!permitirCero && cantidad === 0)) {
+    throw new ErrorDeNegocio(`La cantidad${donde} no es válida`);
+  }
+  if (unidadDe(p) === 'unidad' && !Number.isInteger(cantidad)) {
+    throw new ErrorDeNegocio(`La cantidad${donde} debe ser un número entero`);
+  }
+  if (redondearCantidad(cantidad) !== cantidad) {
+    throw new ErrorDeNegocio(`La cantidad${donde} admite hasta 3 decimales`);
+  }
+}
 
 /** Día local (AAAA-MM-DD) de una fecha ISO. La caja se cierra en hora del celular, no en UTC. */
 export const diaLocal = (iso: string | Date): string => {
@@ -58,21 +86,24 @@ export async function registrarVenta(db: BodegaDB, entrada: EntradaVenta): Promi
     for (const item of items) {
       const producto = await db.productos.get(item.productoId);
       if (!producto) throw new ErrorDeNegocio('Producto no encontrado');
-      if (producto.stock < item.cantidad) {
-        throw new ErrorDeNegocio(`No alcanza el stock de ${producto.nombre}`);
-      }
-      await db.productos.update(producto.id, {
-        stock: producto.stock - item.cantidad,
-        actualizadoEn: fecha,
-      });
+      validarCantidad(producto, item.cantidad);
       await db.lineas.add({
         id: nuevoId(),
         ventaId: venta.id,
         productoId: producto.id,
         nombre: producto.nombre,
+        unidad: producto.unidad,
         cantidad: item.cantidad,
         precio: item.precio,
         costo: producto.costo,
+      });
+      if (producto.sinStock) continue; // «Varios» no lleva inventario
+      if (producto.stock < item.cantidad) {
+        throw new ErrorDeNegocio(`No alcanza el stock de ${producto.nombre}`);
+      }
+      await db.productos.update(producto.id, {
+        stock: redondearCantidad(producto.stock - item.cantidad),
+        actualizadoEn: fecha,
       });
       await db.movimientos.add({
         id: nuevoId(),
@@ -101,9 +132,10 @@ export async function anularVenta(db: BodegaDB, ventaId: string): Promise<void> 
     const lineas = await db.lineas.where('ventaId').equals(ventaId).toArray();
     for (const linea of lineas) {
       const producto = await db.productos.get(linea.productoId);
+      if (producto?.sinStock) continue;
       if (producto) {
         await db.productos.update(producto.id, {
-          stock: producto.stock + linea.cantidad,
+          stock: redondearCantidad(producto.stock + linea.cantidad),
           actualizadoEn: fecha,
         });
       }
@@ -154,7 +186,7 @@ export interface LineaIngreso {
 /** Entrada de mercadería: suma stock y actualiza el costo de compra. */
 export async function ingresarMercaderia(db: BodegaDB, lineas: LineaIngreso[]) {
   if (lineas.length === 0) throw new ErrorDeNegocio('No hay productos para ingresar');
-  if (lineas.some((l) => l.cantidad <= 0 || l.costo < 0)) {
+  if (lineas.some((l) => !(l.cantidad > 0) || l.costo < 0)) {
     throw new ErrorDeNegocio('Cantidad o costo inválido');
   }
   const ingresoId = nuevoId();
@@ -163,8 +195,9 @@ export async function ingresarMercaderia(db: BodegaDB, lineas: LineaIngreso[]) {
     for (const l of lineas) {
       const producto = await db.productos.get(l.productoId);
       if (!producto) throw new ErrorDeNegocio('Producto no encontrado');
+      validarCantidad(producto, l.cantidad);
       await db.productos.update(producto.id, {
-        stock: producto.stock + l.cantidad,
+        stock: redondearCantidad(producto.stock + l.cantidad),
         costo: l.costo,
         actualizadoEn: fecha,
       });
@@ -189,11 +222,11 @@ export async function ajustarStock(
   tipo: 'ajuste' | 'conteo' = 'ajuste',
   ref?: string,
 ) {
-  if (contado < 0 || !Number.isFinite(contado)) throw new ErrorDeNegocio('Cantidad inválida');
   await db.transaction('rw', [db.productos, db.movimientos], async () => {
     const producto = await db.productos.get(productoId);
     if (!producto) throw new ErrorDeNegocio('Producto no encontrado');
-    const diferencia = contado - producto.stock;
+    validarCantidad(producto, contado, true);
+    const diferencia = redondearCantidad(contado - producto.stock);
     if (diferencia === 0) return;
     const fecha = ahora();
     await db.productos.update(productoId, { stock: contado, actualizadoEn: fecha });
@@ -218,7 +251,10 @@ export async function resumenDeCaja(db: BodegaDB, dia: string) {
     redondear(ventas.filter((v) => v.metodo === m).reduce((s, v) => s + v.total, 0));
   const idsVigentes = new Set(ventas.map((v) => v.id));
   const lineas = (await db.lineas.toArray()).filter((l) => idsVigentes.has(l.ventaId));
-  const ganancia = redondear(lineas.reduce((s, l) => s + l.cantidad * (l.precio - l.costo), 0));
+  // «Varios» no tiene costo conocido: contarlo todo como ganancia la inflaría.
+  const ganancia = redondear(
+    lineas.filter((l) => l.productoId !== ID_VARIOS).reduce((s, l) => s + l.cantidad * (l.precio - l.costo), 0),
+  );
   const abonos = (await db.abonos.toArray()).filter((a) => diaLocal(a.fecha) === dia);
   const cobrosDeFiados = redondear(abonos.reduce((s, a) => s + a.monto, 0));
   const efectivo = suma('efectivo');
@@ -242,6 +278,7 @@ export interface DatosProducto {
   stock: number;
   minimo?: number;
   seccionId?: string;
+  unidad?: Unidad;
 }
 
 /** Crea un producto nuevo. El stock inicial queda registrado como un ingreso. */
@@ -251,9 +288,7 @@ export async function crearProducto(db: BodegaDB, datos: DatosProducto) {
   const codigo = datos.codigo?.trim() || undefined;
   if (!nombre) throw new ErrorDeNegocio('Escribe el nombre del producto');
   if (!(datos.precio > 0)) throw new ErrorDeNegocio('Escribe el precio de venta');
-  if (datos.stock < 0 || !Number.isInteger(datos.stock)) {
-    throw new ErrorDeNegocio('La cantidad debe ser un número entero');
-  }
+  validarCantidad({ unidad: datos.unidad }, datos.stock, true);
   if (codigo && (await db.productos.where('codigo').equals(codigo).count()) > 0) {
     throw new ErrorDeNegocio('Ya existe un producto con ese código');
   }
@@ -268,6 +303,7 @@ export async function crearProducto(db: BodegaDB, datos: DatosProducto) {
     stock: datos.stock,
     minimo: datos.minimo ?? 5,
     seccionId: datos.seccionId,
+    unidad: datos.unidad === 'kg' ? ('kg' as const) : undefined,
     actualizadoEn: ahora(),
   };
 
@@ -285,4 +321,23 @@ export async function crearProducto(db: BodegaDB, datos: DatosProducto) {
     }
   });
   return producto;
+}
+
+/** Devuelve el producto «Varios» de la venta rápida, creándolo la primera vez. No lleva inventario. */
+export async function asegurarVarios(db: BodegaDB) {
+  const existente = await db.productos.get(ID_VARIOS);
+  if (existente) return existente;
+  const varios = {
+    id: ID_VARIOS,
+    bodegaId: BODEGA_ID,
+    nombre: 'Varios',
+    costo: 0,
+    precio: 1,
+    stock: 0,
+    minimo: 0,
+    sinStock: true,
+    actualizadoEn: ahora(),
+  };
+  await db.productos.add(varios);
+  return varios;
 }

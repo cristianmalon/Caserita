@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Escaner } from '../componentes/Escaner';
 import { db } from '../data/db';
-import { ETIQUETA_ESTADO, estadoDeStock } from '../formato';
+import { ETIQUETA_ESTADO, estadoDeStock, formatoCantidad, nombreUnidades } from '../formato';
 import { Cabecera, Icono } from '../ui';
 
 type Filtro = 'todos' | 'pocos' | 'agotados';
@@ -24,7 +24,7 @@ export function Inventario() {
   const secciones = useLiveQuery(() => db.secciones.toArray(), []) ?? [];
   const nombreSeccion = new Map(secciones.map((s) => [s.id, s.nombre]));
 
-  const todos = productos ?? [];
+  const todos = (productos ?? []).filter((p) => !p.sinStock);
   const agotados = todos.filter((p) => estadoDeStock(p) === 'agotado');
   const pocos = todos.filter((p) => estadoDeStock(p) === 'poco');
 
@@ -93,8 +93,8 @@ export function Inventario() {
                 </span>
               </span>
               <span style={{ textAlign: 'right' }}>
-                <span style={{ display: 'block', fontSize: 28, fontWeight: 800, lineHeight: 1 }}>{p.stock}</span>
-                <span className="sub" style={{ fontSize: 13, fontWeight: 700 }}>unidades</span>
+                <span style={{ display: 'block', fontSize: 28, fontWeight: 800, lineHeight: 1 }}>{formatoCantidad(p.stock)}</span>
+                <span className="sub" style={{ fontSize: 13, fontWeight: 700 }}>{nombreUnidades(p.unidad)}</span>
               </span>
             </Link>
           );

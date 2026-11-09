@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { db } from '../data/db';
 import { ventasDelDia } from '../domain/gestion';
 import { ErrorDeNegocio, anularVenta, diaLocal, resumenDeCaja } from '../domain/operaciones';
-import { soles } from '../formato';
+import { formatoCantidad, soles } from '../formato';
 import { Cabecera } from '../ui';
 
 const METODO = { efectivo: 'Efectivo', digital: 'Yape o transferencia', fiado: 'Fiado' } as const;
@@ -69,7 +69,7 @@ export function Caja() {
                 <div style={{ fontWeight: 800, textDecoration: venta.anulada ? 'line-through' : 'none' }}>
                   {new Date(venta.fecha).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })} · {METODO[venta.metodo]}
                 </div>
-                <div className="sub" style={{ fontSize: 14 }}>{lineas.map((l) => `${l.cantidad}× ${l.nombre}`).join(', ')}</div>
+                <div className="sub" style={{ fontSize: 14 }}>{lineas.map((l) => `${formatoCantidad(l.cantidad, l.unidad)}× ${l.nombre}`).join(', ')}</div>
                 {cliente && <div className="sub" style={{ fontSize: 14, fontWeight: 800 }}>{cliente.nombre}</div>}
               </div>
               <div style={{ textAlign: 'right' }}>

@@ -4,7 +4,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { db } from '../data/db';
 import { aplicarConteo, resultadoConteo } from '../domain/gestion';
 import { ErrorDeNegocio } from '../domain/operaciones';
-import { soles } from '../formato';
+import { formatoCantidad, soles } from '../formato';
 import { Cabecera } from '../ui';
 
 export function ResultadoConteo() {
@@ -58,10 +58,10 @@ export function ResultadoConteo() {
             <div key={producto.id} className="fila" style={{ minHeight: 64 }}>
               <span className="nombre">
                 {producto.nombre}
-                <span className="sub" style={{ display: 'block', fontSize: 14 }}>El sistema decía {sistema} · Contaste {contado}</span>
+                <span className="sub" style={{ display: 'block', fontSize: 14 }}>El sistema decía {formatoCantidad(sistema, producto.unidad)} · Contaste {formatoCantidad(contado, producto.unidad)}</span>
               </span>
               <span style={{ minWidth: 64, textAlign: 'center', padding: '6px 10px', borderRadius: 14, fontSize: 22, fontWeight: 800, background: diferencia < 0 ? 'var(--rojo-claro)' : 'var(--verde-claro)', color: diferencia < 0 ? 'var(--rojo-tinta)' : '#1e4d12' }} aria-label={diferencia < 0 ? `Faltan ${-diferencia}` : `Sobran ${diferencia}`}>
-                {diferencia > 0 ? `+ ${diferencia}` : `− ${-diferencia}`}
+                {diferencia > 0 ? `+ ${formatoCantidad(diferencia)}` : `− ${formatoCantidad(-diferencia)}`}
               </span>
             </div>
           ))}

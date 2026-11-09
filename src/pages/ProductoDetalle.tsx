@@ -5,8 +5,8 @@ import { Escaner } from '../componentes/Escaner';
 import { SelectorSeccion } from '../componentes/SelectorSeccion';
 import { db } from '../data/db';
 import { actualizarProducto, movimientosDe } from '../domain/gestion';
-import { ErrorDeNegocio, ajustarStock, redondear } from '../domain/operaciones';
-import { ETIQUETA_ESTADO, ETIQUETA_MOVIMIENTO, estadoDeStock, haceCuanto, soles } from '../formato';
+import { ErrorDeNegocio, ajustarStock, redondear, redondearCantidad } from '../domain/operaciones';
+import { ETIQUETA_ESTADO, ETIQUETA_MOVIMIENTO, estadoDeStock, formatoCantidad, haceCuanto, nombreUnidades, soles } from '../formato';
 import { Cabecera, Icono } from '../ui';
 
 const aNumero = (s: string) => Number(s.replace(',', '.'));
@@ -25,7 +25,9 @@ export function ProductoDetalle() {
   const [precio, setPrecio] = useState('');
   const [costo, setCosto] = useState('');
   const [minimo, setMinimo] = useState('5');
-  const [stock, setStock] = useState(0);
+  const [stock, setStockNumero] = useState(0);
+  const [stockTexto, setStockTexto] = useState('0');
+  const [unidad, setUnidad] = useState<'unidad' | 'kg'>('unidad');
   const [seccionId, setSeccionId] = useState<string | undefined>();
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -38,7 +40,9 @@ export function ProductoDetalle() {
       setPrecio(String(producto.precio));
       setCosto(String(producto.costo));
       setMinimo(String(producto.minimo));
-      setStock(producto.stock);
+      setStockNumero(producto.stock);
+      setStockTexto(String(producto.stock));
+      setUnidad(producto.unidad ?? 'unidad');
       setSeccionId(producto.seccionId);
       setCargado(true);
     }
@@ -53,6 +57,18 @@ export function ProductoDetalle() {
       </main>
     );
   }
+  const paso = unidad === 'kg' ? 0.5 : 1;
+  const fijarStock = (n: number) => {
+    const valor = redondearCantidad(Math.max(0, n));
+    setStockNumero(valor);
+    setStockTexto(String(valor));
+  };
+  const escribirStock = (texto: string) => {
+    setStockTexto(texto);
+    const n = Number(texto.replace(',', '.'));
+    if (Number.isFinite(n) && n >= 0) setStockNumero(n);
+  };
+
   const estado = estadoDeStock({ stock, minimo: Number(minimo) || 0 });
   const ganancia = redondear(aNumero(precio) - aNumero(costo));
 
@@ -68,6 +84,7 @@ export function ProductoDetalle() {
         costo: costo === '' ? 0 : aNumero(costo),
         minimo: Number(minimo),
         seccionId: seccionId ?? null,
+        unidad,
       });
       if (stock !== producto.stock) await ajustarStock(db, id, stock, 'ajuste');
       navegar('/inventario', { replace: true, state: { mensaje: `${nombre.trim()} guardado` } });
@@ -93,12 +110,12 @@ export function ProductoDetalle() {
         <div className="tarjeta" style={{ background: estado === 'agotado' ? 'var(--rojo-claro)' : estado === 'poco' ? 'var(--ambar)' : 'var(--verde-claro)', color: estado === 'agotado' ? 'var(--rojo-tinta)' : estado === 'poco' ? 'var(--ambar-tinta)' : '#1e4d12', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontWeight: 800 }}>Tienes</div>
-            <div style={{ fontSize: 52, fontWeight: 800, lineHeight: 1 }} aria-live="polite">{stock}</div>
-            <div style={{ fontWeight: 700, fontSize: 15 }}>unidades · {ETIQUETA_ESTADO[estado].toLowerCase()}</div>
+            <input aria-label="Cantidad en stock" inputMode={unidad === 'kg' ? 'decimal' : 'numeric'} value={stockTexto} onFocus={(e) => e.target.select()} onChange={(e) => escribirStock(e.target.value)} style={{ width: 150, border: 0, background: 'transparent', color: 'inherit', fontSize: 52, fontWeight: 800, lineHeight: 1, padding: 0 }} />
+            <div style={{ fontWeight: 700, fontSize: 15 }}>{nombreUnidades(unidad)} · {ETIQUETA_ESTADO[estado].toLowerCase()}</div>
           </div>
           <div style={{ display: 'flex', gap: 8 }} role="group" aria-label="Corregir cantidad">
-            <button type="button" className="paso menos" style={{ width: 56, height: 56, background: '#fff' }} aria-label="Quitar una unidad" onClick={() => setStock((s) => Math.max(0, s - 1))}>−</button>
-            <button type="button" className="paso mas" style={{ width: 56, height: 56, background: '#fff' }} aria-label="Agregar una unidad" onClick={() => setStock((s) => s + 1)}>+</button>
+            <button type="button" className="paso menos" style={{ width: 56, height: 56, background: '#fff' }} aria-label="Quitar una unidad" onClick={() => fijarStock(stock - paso)}>−</button>
+            <button type="button" className="paso mas" style={{ width: 56, height: 56, background: '#fff' }} aria-label="Agregar una unidad" onClick={() => fijarStock(stock + paso)}>+</button>
           </div>
         </div>
         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--suave)', marginTop: -6 }}>
@@ -107,6 +124,17 @@ export function ProductoDetalle() {
         </div>
 
         {etiqueta('Nombre', <input className="campo" value={nombre} onChange={(e) => setNombre(e.target.value)} autoComplete="off" />)}
+
+        <div role="group" aria-label="Cómo se vende" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ fontSize: 16, fontWeight: 800 }}>Se vende</div>
+          <div className="dos">
+            {(['unidad', 'kg'] as const).map((u) => (
+              <button key={u} type="button" aria-pressed={unidad === u} onClick={() => setUnidad(u)} style={{ minHeight: 48, border: 0, borderRadius: 14, fontSize: 17, fontWeight: 800, background: unidad === u ? 'var(--tinta)' : 'var(--blanco)', color: unidad === u ? '#fff' : 'var(--tinta)', boxShadow: unidad === u ? 'none' : '0 2px 0 var(--linea)' }}>
+                {u === 'unidad' ? 'Por unidad' : 'Por kilo'}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {escaneando && (
           <Escaner
@@ -128,7 +156,7 @@ export function ProductoDetalle() {
         </div>
 
         <div className="dos">
-          {etiqueta('Precio de venta', <input className="campo" inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value)} />)}
+          {etiqueta(unidad === 'kg' ? 'Precio por kilo' : 'Precio de venta', <input className="campo" inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value)} />)}
           {etiqueta('Lo compro a', <input className="campo" inputMode="decimal" value={costo} onChange={(e) => setCosto(e.target.value)} />)}
         </div>
 
@@ -151,7 +179,7 @@ export function ProductoDetalle() {
           {movimientos.map((m) => (
             <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
               <span style={{ color: 'var(--suave)' }}>{haceCuanto(m.fecha).replace(/^./, (c) => c.toUpperCase())} · {ETIQUETA_MOVIMIENTO[m.tipo] ?? m.tipo}</span>
-              <b>{m.cantidad > 0 ? `+${m.cantidad}` : m.cantidad}</b>
+              <b>{m.cantidad > 0 ? `+${formatoCantidad(m.cantidad)}` : formatoCantidad(m.cantidad)}</b>
             </div>
           ))}
         </div>

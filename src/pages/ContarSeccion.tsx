@@ -11,7 +11,7 @@ export function ContarSeccion() {
   const datos = useLiveQuery(async () => {
     const [secciones, productos, ultimos, abiertos] = await Promise.all([
       db.secciones.toArray(),
-      db.productos.toArray(),
+      db.productos.filter((p) => !p.sinStock).toArray(),
       ultimosConteos(db),
       db.conteos.where('estado').equals('abierto').toArray(),
     ]);

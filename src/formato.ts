@@ -36,3 +36,11 @@ export const ETIQUETA_MOVIMIENTO: Record<string, string> = {
   conteo: 'Conteo',
   anulacion: 'Venta anulada',
 };
+
+/** «12», «0.75 kg», «2.5 kg»: sin ceros sobrantes. */
+export const formatoCantidad = (n: number, unidad?: 'unidad' | 'kg'): string => {
+  const texto = String(Number(n.toFixed(3)));
+  return unidad === 'kg' ? `${texto} kg` : texto;
+};
+
+export const nombreUnidades = (unidad?: 'unidad' | 'kg'): string => (unidad === 'kg' ? 'kilos' : 'unidades');

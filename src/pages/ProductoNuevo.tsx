@@ -24,6 +24,7 @@ export function ProductoNuevo() {
   const [stock, setStock] = useState('1');
   const [costo, setCosto] = useState('');
   const [seccionId, setSeccionId] = useState<string | undefined>();
+  const [unidad, setUnidad] = useState<'unidad' | 'kg'>('unidad');
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
 
@@ -50,6 +51,7 @@ export function ProductoNuevo() {
         stock: aNumero(stock),
         costo: costo ? aNumero(costo) : undefined,
         seccionId,
+        unidad,
       });
       const problema = carrito.agregar(producto);
       navegar('/vender', { replace: true, state: problema ? { aviso: problema } : null });
@@ -84,8 +86,19 @@ export function ProductoNuevo() {
           </div>
         )}
 
+        <div role="group" aria-label="Cómo se vende" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: 17, fontWeight: 800 }}>¿Cómo lo vendes?</div>
+          <div className="dos">
+            {(['unidad', 'kg'] as const).map((u) => (
+              <button key={u} type="button" aria-pressed={unidad === u} onClick={() => { setUnidad(u); if (u === 'unidad') setStock((s) => String(Math.round(Number(s.replace(',', '.')) || 1))); }} style={{ minHeight: 52, border: 0, borderRadius: 16, fontSize: 18, fontWeight: 800, background: unidad === u ? 'var(--tinta)' : 'var(--blanco)', color: unidad === u ? '#fff' : 'var(--tinta)', boxShadow: unidad === u ? 'none' : '0 2px 0 var(--linea)' }}>
+                {u === 'unidad' ? 'Por unidad' : 'Por kilo'}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontWeight: 800, fontSize: 17 }}>
-          Precio de venta
+          {unidad === 'kg' ? 'Precio por kilo' : 'Precio de venta'}
           <input
             className="campo"
             inputMode="decimal"
@@ -99,8 +112,8 @@ export function ProductoNuevo() {
 
         <div className="dos">
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontWeight: 800, fontSize: 17 }}>
-            ¿Cuántos tienes?
-            <input className="campo" inputMode="numeric" value={stock} onChange={(e) => setStock(e.target.value)} />
+            {unidad === 'kg' ? '¿Cuántos kilos tienes?' : '¿Cuántos tienes?'}
+            <input className="campo" inputMode={unidad === 'kg' ? 'decimal' : 'numeric'} value={stock} onChange={(e) => setStock(e.target.value)} />
           </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontWeight: 800, fontSize: 17 }}>
             <span>Lo compré a <span style={{ fontWeight: 600, color: 'var(--suave)' }}>(opcional)</span></span>

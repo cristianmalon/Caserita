@@ -1,5 +1,5 @@
 import { type ReactNode, createContext, useContext, useMemo, useState } from 'react';
-import { totalCarrito } from './domain/operaciones';
+import { redondearCantidad, totalCarrito } from './domain/operaciones';
 import type { ItemCarrito, Producto } from './domain/types';
 
 interface Carrito {
@@ -9,6 +9,8 @@ interface Carrito {
   seleccionarCliente: (id: string | null) => void;
   agregar: (producto: Producto) => string | null; // devuelve un mensaje si no se pudo
   cambiar: (productoId: string, delta: number, stockMaximo: number) => void;
+  /** Fija una cantidad exacta (por peso). Devuelve un mensaje si pasa del stock. */
+  fijarCantidad: (productoId: string, cantidad: number, stockMaximo: number) => string | null;
   fijarPrecio: (productoId: string, precio: number) => void;
   vaciar: () => void;
 }
@@ -28,7 +30,7 @@ export function CarritoProvider({ children }: { children: ReactNode }) {
       agregar: (producto) => {
         const actual = items.find((i) => i.productoId === producto.id);
         const cantidad = (actual?.cantidad ?? 0) + 1;
-        if (cantidad > producto.stock) return `No alcanza el stock de ${producto.nombre}`;
+        if (!producto.sinStock && cantidad > producto.stock) return `No alcanza el stock de ${producto.nombre}`;
         setItems(
           actual
             ? items.map((i) => (i.productoId === producto.id ? { ...i, cantidad } : i))
@@ -41,11 +43,17 @@ export function CarritoProvider({ children }: { children: ReactNode }) {
           prev
             .map((i) =>
               i.productoId === productoId
-                ? { ...i, cantidad: Math.min(i.cantidad + delta, stockMaximo) }
+                ? { ...i, cantidad: redondearCantidad(Math.min(i.cantidad + delta, stockMaximo)) }
                 : i,
             )
             .filter((i) => i.cantidad > 0),
         ),
+      fijarCantidad: (productoId, cantidad, stockMaximo) => {
+        if (!(cantidad > 0)) return 'Escribe una cantidad mayor a cero';
+        if (cantidad > stockMaximo) return `No alcanza el stock: solo quedan ${stockMaximo}`;
+        setItems((prev) => prev.map((i) => (i.productoId === productoId ? { ...i, cantidad: redondearCantidad(cantidad) } : i)));
+        return null;
+      },
       fijarPrecio: (productoId, precio) =>
         setItems((prev) => prev.map((i) => (i.productoId === productoId ? { ...i, precio } : i))),
       vaciar: () => {

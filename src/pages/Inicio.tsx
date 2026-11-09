@@ -18,7 +18,7 @@ export function Inicio() {
   const datos = useLiveQuery(async () => {
     const [caja, productos, clientes] = await Promise.all([
       resumenDeCaja(db, diaLocal(new Date())),
-      db.productos.toArray(),
+      db.productos.filter((p) => !p.sinStock).toArray(),
       db.clientes.toArray(),
     ]);
     const deudas = await Promise.all(clientes.map((c) => deudaDeCliente(db, c.id)));

@@ -1,6 +1,6 @@
 import { BODEGA_ID, type BodegaDB, ahora, nuevoId } from '../data/db';
-import { ErrorDeNegocio, diaLocal, redondear } from './operaciones';
-import type { Cliente, Conteo, LineaVenta, Producto, Seccion, Venta } from './types';
+import { ErrorDeNegocio, diaLocal, redondear, redondearCantidad, validarCantidad } from './operaciones';
+import type { Cliente, Conteo, LineaVenta, Producto, Seccion, Unidad, Venta } from './types';
 
 const COLORES = ['#F2A33A', '#3B82C4', '#D9534F', '#1B7F45', '#8B6B4A', '#7A5BA6', '#2A9D8F'];
 
@@ -79,6 +79,8 @@ export interface CambiosProducto {
   minimo?: number;
   seccionId?: string | null; // null = sin sección
   codigo?: string | null; // código de barras; vacío o null = sin código
+  unidad?: Unidad;
+  favorito?: boolean;
 }
 
 export async function actualizarProducto(db: BodegaDB, id: string, cambios: CambiosProducto) {
@@ -104,6 +106,13 @@ export async function actualizarProducto(db: BodegaDB, id: string, cambios: Camb
     nuevo.minimo = cambios.minimo;
   }
   if (cambios.seccionId !== undefined) nuevo.seccionId = cambios.seccionId ?? undefined;
+  if (cambios.favorito !== undefined) nuevo.favorito = cambios.favorito || undefined;
+  if (cambios.unidad !== undefined) {
+    if (cambios.unidad === 'unidad' && !Number.isInteger(producto.stock)) {
+      throw new ErrorDeNegocio('No se puede pasar a «por unidad» con stock decimal. Corrige el stock primero.');
+    }
+    nuevo.unidad = cambios.unidad === 'kg' ? 'kg' : undefined;
+  }
   if (cambios.codigo !== undefined) {
     const codigo = cambios.codigo?.trim() || undefined;
     if (codigo) {
@@ -119,7 +128,7 @@ export async function actualizarProducto(db: BodegaDB, id: string, cambios: Camb
 
 /** Productos que entran en el conteo: los de la sección, o todos. */
 async function productosDelAlcance(db: BodegaDB, seccionId: string | null) {
-  const todos = await db.productos.toArray();
+  const todos = (await db.productos.toArray()).filter((p) => !p.sinStock);
   return seccionId ? todos.filter((p) => p.seccionId === seccionId) : todos;
 }
 
@@ -147,14 +156,12 @@ export async function registrarConteo(
   productoId: string,
   contado: number,
 ) {
-  if (!Number.isInteger(contado) || contado < 0) {
-    throw new ErrorDeNegocio('La cantidad debe ser un número entero');
-  }
   await db.transaction('rw', [db.conteos, db.productos], async () => {
     const conteo = await db.conteos.get(conteoId);
     if (!conteo || conteo.estado !== 'abierto') throw new ErrorDeNegocio('Este conteo ya terminó');
     const producto = await db.productos.get(productoId);
     if (!producto) throw new ErrorDeNegocio('Producto no encontrado');
+    validarCantidad(producto, contado, true);
     const previo = conteo.lineas[productoId];
     // Si ya se había contado, se conserva el "sistema" original: es contra lo que se compara.
     await db.conteos.update(conteoId, {
@@ -185,7 +192,7 @@ export async function resultadoConteo(db: BodegaDB, conteoId: string): Promise<R
     const producto = porId.get(productoId);
     if (!producto) continue; // salió de la sección después de contarlo
     contados++;
-    const diferencia = linea.contado - linea.sistema;
+    const diferencia = redondearCantidad(linea.contado - linea.sistema);
     if (diferencia === 0) coinciden++;
     else diferencias.push({ producto, sistema: linea.sistema, contado: linea.contado, diferencia });
   }
@@ -214,11 +221,11 @@ export async function aplicarConteo(db: BodegaDB, conteoId: string): Promise<num
     const fecha = ahora();
     let ajustes = 0;
     for (const [productoId, linea] of Object.entries(conteo.lineas)) {
-      const diferencia = linea.contado - linea.sistema;
+      const diferencia = redondearCantidad(linea.contado - linea.sistema);
       if (diferencia === 0) continue;
       const producto = await db.productos.get(productoId);
       if (!producto) continue;
-      const stock = Math.max(0, producto.stock + diferencia);
+      const stock = Math.max(0, redondearCantidad(producto.stock + diferencia));
       if (stock === producto.stock) continue;
       await db.productos.update(productoId, { stock, actualizadoEn: fecha });
       await db.movimientos.add({
@@ -226,7 +233,7 @@ export async function aplicarConteo(db: BodegaDB, conteoId: string): Promise<num
         bodegaId: BODEGA_ID,
         productoId,
         tipo: 'conteo',
-        cantidad: stock - producto.stock,
+        cantidad: redondearCantidad(stock - producto.stock),
         ref: conteoId,
         fecha,
       });

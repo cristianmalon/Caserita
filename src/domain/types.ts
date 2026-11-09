@@ -3,6 +3,9 @@
 
 export type Id = string;
 
+/** Cómo se cuenta un producto: por unidades enteras o por peso (kg, hasta 3 decimales). */
+export type Unidad = 'unidad' | 'kg';
+
 export interface Seccion {
   id: Id;
   bodegaId: Id;
@@ -20,6 +23,9 @@ export interface Producto {
   precio: number;
   stock: number; // cache; la verdad está en `movimientos`
   minimo: number; // avisar cuando queden <= minimo
+  unidad?: Unidad; // sin valor = por unidad
+  favorito?: boolean; // aparece fijo en la pantalla de Vender
+  sinStock?: boolean; // producto "Varios" de la venta rápida: no lleva inventario
   actualizadoEn: string;
 }
 
@@ -49,6 +55,7 @@ export interface LineaVenta {
   ventaId: Id;
   productoId: Id;
   nombre: string; // copia, por si luego cambia el nombre
+  unidad?: Unidad;
   cantidad: number;
   precio: number; // precio al que se vendió (puede diferir del catálogo)
   costo: number;

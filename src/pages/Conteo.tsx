@@ -4,7 +4,8 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Escaner } from '../componentes/Escaner';
 import { db } from '../data/db';
 import { registrarConteo } from '../domain/gestion';
-import { ErrorDeNegocio } from '../domain/operaciones';
+import { ErrorDeNegocio, redondearCantidad } from '../domain/operaciones';
+import { formatoCantidad } from '../formato';
 import { Cabecera, Icono } from '../ui';
 
 const normalizar = (s: string) =>
@@ -19,7 +20,7 @@ export function Conteo() {
   const navegar = useNavigate();
   const conteo = useLiveQuery(() => db.conteos.get(id).then((c) => c ?? null), [id]);
   const seccion = useLiveQuery(async () => (conteo?.seccionId ? db.secciones.get(conteo.seccionId) : undefined), [conteo?.seccionId]);
-  const todos = useLiveQuery(() => db.productos.orderBy('nombre').toArray(), []) ?? [];
+  const todos = (useLiveQuery(() => db.productos.orderBy('nombre').toArray(), []) ?? []).filter((p) => !p.sinStock);
 
   const [consulta, setConsulta] = useState('');
   const [actual, setActual] = useState<string | null>(null);
@@ -60,7 +61,7 @@ export function Conteo() {
   const anotar = async () => {
     if (!actual) return;
     try {
-      await registrarConteo(db, id, actual, Number(cantidad));
+      await registrarConteo(db, id, actual, Number(cantidad.replace(',', '.')));
       setActual(null);
       setError(null);
     } catch (e) {
@@ -94,10 +95,10 @@ export function Conteo() {
           <b style={{ fontSize: 24 }}>{producto.nombre}</b>
           <span style={{ fontWeight: 800 }}>¿Cuántas hay?</span>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-            <button className="paso menos" style={{ width: 60, height: 60, background: '#fff', fontSize: 32 }} aria-label="Quitar una" onClick={() => setCantidad(String(Math.max(0, (Number(cantidad) || 0) - 1)))}>−</button>
+            <button className="paso menos" style={{ width: 60, height: 60, background: '#fff', fontSize: 32 }} aria-label="Quitar una" onClick={() => setCantidad(String(redondearCantidad(Math.max(0, (Number(cantidad.replace(',', '.')) || 0) - (producto.unidad === 'kg' ? 0.5 : 1)))))}>−</button>
             <label className="sr-only" htmlFor="cantidad">Cantidad contada</label>
-            <input id="cantidad" inputMode="numeric" value={cantidad} onFocus={(e) => e.target.select()} onChange={(e) => setCantidad(e.target.value.replace(/\D/g, ''))} style={{ width: 110, height: 60, textAlign: 'center', fontSize: 38, fontWeight: 800, border: '2px solid #d9cdb8', borderRadius: 16, background: '#fff' }} />
-            <button className="paso mas" style={{ width: 60, height: 60, background: 'var(--verde)', color: '#fff', fontSize: 32 }} aria-label="Agregar una" onClick={() => setCantidad(String((Number(cantidad) || 0) + 1))}>+</button>
+            <input id="cantidad" inputMode={producto.unidad === 'kg' ? 'decimal' : 'numeric'} value={cantidad} onFocus={(e) => e.target.select()} onChange={(e) => setCantidad(producto.unidad === 'kg' ? e.target.value.replace(/[^\d.,]/g, '') : e.target.value.replace(/\D/g, ''))} style={{ width: 110, height: 60, textAlign: 'center', fontSize: 38, fontWeight: 800, border: '2px solid #d9cdb8', borderRadius: 16, background: '#fff' }} />
+            <button className="paso mas" style={{ width: 60, height: 60, background: 'var(--verde)', color: '#fff', fontSize: 32 }} aria-label="Agregar una" onClick={() => setCantidad(String(redondearCantidad((Number(cantidad.replace(',', '.')) || 0) + (producto.unidad === 'kg' ? 0.5 : 1))))}>+</button>
           </div>
           <div className="dos">
             <button className="boton borde" style={{ minHeight: 56, fontSize: 18 }} onClick={() => setActual(null)}>Cancelar</button>
@@ -163,7 +164,7 @@ export function Conteo() {
                   {contadosIds.map((pid) => (
                     <button key={pid} className="fila" onClick={() => elegir(pid)} style={{ border: 0, textAlign: 'left', minHeight: 48 }}>
                       <span className="nombre">{porId.get(pid)!.nombre}</span>
-                      <b style={{ fontSize: 19 }}>{conteo.lineas[pid].contado}</b>
+                      <b style={{ fontSize: 19 }}>{formatoCantidad(conteo.lineas[pid].contado, porId.get(pid)!.unidad)}</b>
                     </button>
                   ))}
                 </section>

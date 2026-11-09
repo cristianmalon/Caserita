@@ -132,7 +132,7 @@ describe('conteo por sección', () => {
   it('rechaza cantidades inválidas', async () => {
     const p = await producto('Leche', 10);
     const c = await iniciarConteo(db, null);
-    await expect(registrarConteo(db, c.id, p, -1)).rejects.toThrow('entero');
+    await expect(registrarConteo(db, c.id, p, -1)).rejects.toThrow('no es válida');
     await expect(registrarConteo(db, c.id, p, 1.5)).rejects.toThrow('entero');
   });
 });

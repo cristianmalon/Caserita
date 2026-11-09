@@ -3,8 +3,9 @@ import { type FormEvent, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCarrito } from '../carrito';
 import { Escaner } from '../componentes/Escaner';
+import { FilaCarrito } from '../componentes/FilaCarrito';
 import { db } from '../data/db';
-import { soles } from '../formato';
+import { formatoCantidad, soles } from '../formato';
 import { Cabecera, Icono } from '../ui';
 
 const normalizar = (s: string) =>
@@ -19,11 +20,11 @@ export function Vender() {
   const [mensaje, setMensaje] = useState<string | null>(state?.aviso ?? null);
   const [escaneando, setEscaneando] = useState(false);
   const [desconocido, setDesconocido] = useState<string | null>(null);
-  const [editando, setEditando] = useState<string | null>(null);
-  const [precioNuevo, setPrecioNuevo] = useState('');
 
-  const productos = useLiveQuery(() => db.productos.orderBy('nombre').toArray(), []) ?? [];
-  const porId = new Map(productos.map((p) => [p.id, p]));
+  const todosLosProductos = useLiveQuery(() => db.productos.orderBy('nombre').toArray(), []) ?? [];
+  const porId = new Map(todosLosProductos.map((p) => [p.id, p]));
+  // «Varios» (venta rápida) no se busca ni se escanea: solo vive en el carrito.
+  const productos = todosLosProductos.filter((p) => !p.sinStock);
 
   const q = normalizar(consulta);
   const resultados = q
@@ -56,12 +57,6 @@ export function Vender() {
     const exacto = productos.find((p) => p.codigo && p.codigo === consulta.trim());
     if (exacto) agregar(exacto.id);
     else if (resultados.length === 1) agregar(resultados[0].id);
-  };
-
-  const guardarPrecio = (id: string) => {
-    const precio = Number(precioNuevo.replace(',', '.'));
-    if (Number.isFinite(precio) && precio >= 0) carrito.fijarPrecio(id, precio);
-    setEditando(null);
   };
 
   return (
@@ -108,10 +103,10 @@ export function Vender() {
               <span className="nombre">
                 {p.nombre}
                 <span className="sub" style={{ display: 'block' }}>
-                  {p.stock > 0 ? `Quedan ${p.stock}` : 'Agotado'}
+                  {p.stock > 0 ? `Quedan ${formatoCantidad(p.stock, p.unidad)}` : 'Agotado'}
                 </span>
               </span>
-              <b>{soles(p.precio)}</b>
+              <b>{soles(p.precio)}{p.unidad === 'kg' ? ' /kg' : ''}</b>
             </button>
           ))}
           <button
@@ -132,44 +127,7 @@ export function Vender() {
           )}
           {carrito.items.map((item) => {
             const p = porId.get(item.productoId);
-            if (!p) return null;
-            return (
-              <div className="fila" key={item.productoId}>
-                <div className="nombre">
-                  {p.nombre}
-                  {editando === item.productoId ? (
-                    <span style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                      <input
-                        className="campo"
-                        style={{ height: 44, fontSize: 18, width: 100 }}
-                        inputMode="decimal"
-                        value={precioNuevo}
-                        onChange={(e) => setPrecioNuevo(e.target.value)}
-                        aria-label={`Nuevo precio de ${p.nombre}`}
-                        autoFocus
-                      />
-                      <button className="paso mas" style={{ width: 'auto', padding: '0 14px', fontSize: 16 }} onClick={() => guardarPrecio(item.productoId)}>
-                        Listo
-                      </button>
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setEditando(item.productoId);
-                        setPrecioNuevo(String(item.precio));
-                      }}
-                      aria-label={`Cambiar precio de ${p.nombre}`}
-                      style={{ display: 'block', border: 0, background: 'none', padding: '4px 0', color: 'var(--verde)', fontWeight: 700, fontSize: 15, textDecoration: 'underline' }}
-                    >
-                      {soles(item.precio)} c/u ✎
-                    </button>
-                  )}
-                </div>
-                <button className="paso menos" aria-label={`Quitar uno de ${p.nombre}`} onClick={() => carrito.cambiar(item.productoId, -1, p.stock)}>−</button>
-                <b style={{ minWidth: 24, textAlign: 'center', fontSize: 20 }}>{item.cantidad}</b>
-                <button className="paso mas" aria-label={`Agregar uno de ${p.nombre}`} onClick={() => carrito.cambiar(item.productoId, 1, p.stock)}>+</button>
-              </div>
-            );
+            return p ? <FilaCarrito key={item.productoId} item={item} producto={p} /> : null;
           })}
         </section>
       )}

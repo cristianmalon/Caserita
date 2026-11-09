@@ -3,8 +3,8 @@ import { useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useCarrito } from '../carrito';
 import { db } from '../data/db';
-import { ErrorDeNegocio, registrarVenta } from '../domain/operaciones';
-import { soles } from '../formato';
+import { ErrorDeNegocio, registrarVenta, totalLinea } from '../domain/operaciones';
+import { formatoCantidad, soles } from '../formato';
 import { Cabecera, Icono } from '../ui';
 
 export function Cobrar() {
@@ -81,8 +81,8 @@ function ResumenLinea({ productoId, cantidad, precio }: { productoId: string; ca
   const producto = useLiveQuery(() => db.productos.get(productoId), [productoId]);
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 18, fontWeight: 700 }}>
-      <span>{cantidad} × {producto?.nombre ?? '…'}</span>
-      <span>{soles(Math.round(cantidad * precio * 100) / 100)}</span>
+      <span>{formatoCantidad(cantidad, producto?.unidad)} × {producto?.nombre ?? '…'}</span>
+      <span>{soles(totalLinea(cantidad, precio))}</span>
     </div>
   );
 }

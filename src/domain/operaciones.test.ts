@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { BODEGA_ID, BodegaDB, ahora, nuevoId } from '../data/db';
 import {
   ErrorDeNegocio,
+  ID_VARIOS,
   ajustarStock,
   anularVenta,
+  asegurarVarios,
   crearProducto,
   deudaDeCliente,
   diaLocal,
@@ -204,5 +206,69 @@ describe('crearProducto', () => {
     await expect(
       crearProducto(db, { nombre: 'B', codigo: '123', precio: 1, stock: 1 }),
     ).rejects.toThrow('código');
+  });
+});
+
+
+describe('productos por peso', () => {
+  async function arroz(stock = 20) {
+    const p = await crearProducto(db, { nombre: 'Arroz suelto', precio: 4.2, costo: 3.4, stock, unidad: 'kg' });
+    return p.id;
+  }
+
+  it('vende fracciones de kilo, descuenta con exactitud y redondea el total por línea', async () => {
+    const a = await arroz();
+    const v = await registrarVenta(db, { items: [{ productoId: a, cantidad: 0.75, precio: 4.2 }], metodo: 'efectivo' });
+    expect(v.total).toBe(3.15);
+    expect((await db.productos.get(a))!.stock).toBe(19.25);
+    expect((await db.lineas.toArray())[0]).toMatchObject({ unidad: 'kg', cantidad: 0.75 });
+    // 0.1 + 0.2 no debe dejar basura de coma flotante
+    await registrarVenta(db, { items: [{ productoId: a, cantidad: 0.1, precio: 4.2 }], metodo: 'efectivo' });
+    await registrarVenta(db, { items: [{ productoId: a, cantidad: 0.2, precio: 4.2 }], metodo: 'efectivo' });
+    expect((await db.productos.get(a))!.stock).toBe(18.95);
+  });
+
+  it('rechaza decimales en productos por unidad y más de 3 decimales por kilo', async () => {
+    const a = await arroz();
+    const leche = await crearProducto(db, { nombre: 'Leche', precio: 4, stock: 5 });
+    await expect(registrarVenta(db, { items: [{ productoId: leche.id, cantidad: 1.5, precio: 4 }], metodo: 'efectivo' })).rejects.toThrow('entero');
+    await expect(registrarVenta(db, { items: [{ productoId: a, cantidad: 0.1234, precio: 4.2 }], metodo: 'efectivo' })).rejects.toThrow('3 decimales');
+    await expect(crearProducto(db, { nombre: 'Frijol', precio: 5, stock: 1.5 })).rejects.toThrow('entero');
+    expect(await db.ventas.count()).toBe(0);
+  });
+
+  it('el total por línea redondeada coincide con lo que se muestra', () => {
+    // 3 líneas de 0.333 kg a S/ 1.00: 0.33 cada una => 0.99 (no 1.00)
+    const item = { productoId: 'x', cantidad: 0.333, precio: 1 };
+    expect(totalCarrito([item, item, item])).toBe(0.99);
+  });
+
+  it('ingreso, ajuste y anulación conservan los decimales', async () => {
+    const a = await arroz(10);
+    await ingresarMercaderia(db, [{ productoId: a, cantidad: 12.5, costo: 3.5 }]);
+    expect((await db.productos.get(a))!.stock).toBe(22.5);
+    await ajustarStock(db, a, 22.125);
+    expect((await db.productos.get(a))!.stock).toBe(22.125);
+    const v = await registrarVenta(db, { items: [{ productoId: a, cantidad: 2.125, precio: 4.2 }], metodo: 'digital' });
+    await anularVenta(db, v.id);
+    expect((await db.productos.get(a))!.stock).toBe(22.125);
+  });
+});
+
+describe('venta rápida («Varios»)', () => {
+  it('se vende sin inventario, no entra a movimientos y no infla la ganancia', async () => {
+    const varios = await asegurarVarios(db);
+    expect(await asegurarVarios(db)).toEqual(varios); // idempotente
+    expect(await db.productos.count()).toBe(1);
+
+    const v = await registrarVenta(db, { items: [{ productoId: ID_VARIOS, cantidad: 1, precio: 5 }], metodo: 'efectivo' });
+    expect(v.total).toBe(5);
+    expect(await db.movimientos.count()).toBe(0);
+    expect((await db.productos.get(ID_VARIOS))!.stock).toBe(0);
+    const r = await resumenDeCaja(db, diaLocal(new Date()));
+    expect(r).toMatchObject({ total: 5, ganancia: 0 });
+
+    await anularVenta(db, v.id); // anular tampoco toca inventario
+    expect(await db.movimientos.count()).toBe(0);
   });
 });
