@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Escaner } from '../componentes/Escaner';
 import { db } from '../data/db';
 import { registrarConteo } from '../domain/gestion';
 import { ErrorDeNegocio } from '../domain/operaciones';
@@ -24,6 +25,7 @@ export function Conteo() {
   const [actual, setActual] = useState<string | null>(null);
   const [cantidad, setCantidad] = useState('0');
   const [verFaltan, setVerFaltan] = useState(false);
+  const [escaneando, setEscaneando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (conteo === undefined) return <main className="pantalla"><Cabecera titulo="Contar inventario" volver="/inventario" /></main>;
@@ -44,6 +46,15 @@ export function Conteo() {
     setCantidad(String(conteo.lineas[productoId]?.contado ?? 0));
     setConsulta('');
     setError(null);
+  };
+
+  // Al leer un código se abre ese producto para anotar cuántas hay.
+  const alLeerCodigo = (codigo: string): string => {
+    const p = alcance.find((x) => x.codigo === codigo);
+    if (!p) return 'Ese código no es de esta sección';
+    elegir(p.id);
+    setEscaneando(false);
+    return p.nombre;
   };
 
   const anotar = async () => {
@@ -95,6 +106,9 @@ export function Conteo() {
         </div>
       ) : (
         <>
+          {escaneando && <Escaner alLeer={alLeerCodigo} alCerrar={() => setEscaneando(false)} />}
+
+          <div className="fila-busqueda">
           <div className="campo-con-icono">
             <Icono nombre="lupa" />
             <label className="sr-only" htmlFor="buscar-conteo">Buscar producto o escribir código</label>
@@ -113,6 +127,10 @@ export function Conteo() {
               }}
             />
           </div>
+          <button type="button" className="boton-escaner" aria-label={escaneando ? 'Cerrar el escáner' : 'Escanear código de barras'} aria-pressed={escaneando} onClick={() => setEscaneando((v) => !v)}>
+            <Icono nombre="escaner" tam={28} />
+          </button>
+    </div>
 
           {q ? (
             <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }} aria-label="Resultados">

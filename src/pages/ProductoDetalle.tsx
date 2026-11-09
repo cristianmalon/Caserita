@@ -1,12 +1,13 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { type FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Escaner } from '../componentes/Escaner';
 import { SelectorSeccion } from '../componentes/SelectorSeccion';
 import { db } from '../data/db';
 import { actualizarProducto, movimientosDe } from '../domain/gestion';
 import { ErrorDeNegocio, ajustarStock, redondear } from '../domain/operaciones';
 import { ETIQUETA_ESTADO, ETIQUETA_MOVIMIENTO, estadoDeStock, haceCuanto, soles } from '../formato';
-import { Cabecera } from '../ui';
+import { Cabecera, Icono } from '../ui';
 
 const aNumero = (s: string) => Number(s.replace(',', '.'));
 
@@ -19,6 +20,8 @@ export function ProductoDetalle() {
 
   const [cargado, setCargado] = useState(false);
   const [nombre, setNombre] = useState('');
+  const [codigo, setCodigo] = useState('');
+  const [escaneando, setEscaneando] = useState(false);
   const [precio, setPrecio] = useState('');
   const [costo, setCosto] = useState('');
   const [minimo, setMinimo] = useState('5');
@@ -31,6 +34,7 @@ export function ProductoDetalle() {
   useEffect(() => {
     if (producto && !cargado) {
       setNombre(producto.nombre);
+      setCodigo(producto.codigo ?? '');
       setPrecio(String(producto.precio));
       setCosto(String(producto.costo));
       setMinimo(String(producto.minimo));
@@ -59,6 +63,7 @@ export function ProductoDetalle() {
     try {
       await actualizarProducto(db, id, {
         nombre,
+        codigo: codigo.trim() || null,
         precio: aNumero(precio),
         costo: costo === '' ? 0 : aNumero(costo),
         minimo: Number(minimo),
@@ -102,6 +107,25 @@ export function ProductoDetalle() {
         </div>
 
         {etiqueta('Nombre', <input className="campo" value={nombre} onChange={(e) => setNombre(e.target.value)} autoComplete="off" />)}
+
+        {escaneando && (
+          <Escaner
+            alLeer={(leido) => {
+              setCodigo(leido);
+              setEscaneando(false);
+              return leido;
+            }}
+            alCerrar={() => setEscaneando(false)}
+          />
+        )}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {etiqueta('Código de barras', <input className="campo" inputMode="numeric" placeholder="Escanéalo o escríbelo" value={codigo} onChange={(e) => setCodigo(e.target.value)} autoComplete="off" />)}
+          </div>
+          <button type="button" className="boton-escaner" aria-label="Escanear el código de barras" aria-pressed={escaneando} onClick={() => setEscaneando((v) => !v)}>
+            <Icono nombre="escaner" tam={28} />
+          </button>
+        </div>
 
         <div className="dos">
           {etiqueta('Precio de venta', <input className="campo" inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value)} />)}

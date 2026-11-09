@@ -65,6 +65,18 @@ describe('actualizarProducto', () => {
     await expect(actualizarProducto(db, p, { precio: 0 })).rejects.toThrow('precio');
     await expect(actualizarProducto(db, p, { minimo: 1.5 })).rejects.toThrow('entero');
   });
+
+  it('el código de barras es único, se puede quitar y repetir el propio no falla', async () => {
+    const a = await producto('Galletas', 3);
+    const b = await producto('Fideos', 3);
+    await actualizarProducto(db, a, { codigo: ' 7750123456781 ' });
+    expect((await db.productos.get(a))!.codigo).toBe('7750123456781');
+    await actualizarProducto(db, a, { codigo: '7750123456781' }); // el mismo producto: sin error
+    await expect(actualizarProducto(db, b, { codigo: '7750123456781' })).rejects.toThrow('Galletas');
+    await actualizarProducto(db, a, { codigo: null });
+    expect((await db.productos.get(a))!.codigo).toBeUndefined();
+    await actualizarProducto(db, b, { codigo: '7750123456781' }); // ya quedó libre
+  });
 });
 
 describe('conteo por sección', () => {

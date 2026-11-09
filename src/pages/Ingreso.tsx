@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Escaner } from '../componentes/Escaner';
 import { db } from '../data/db';
 import { ErrorDeNegocio, ingresarMercaderia, redondear } from '../domain/operaciones';
 import { soles } from '../formato';
@@ -27,6 +28,7 @@ export function Ingreso() {
   const [consulta, setConsulta] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [escaneando, setEscaneando] = useState(false);
 
   const agregar = (productoId: string) => {
     const p = porId.get(productoId);
@@ -66,10 +68,20 @@ export function Ingreso() {
     }
   };
 
+  const alLeerCodigo = (codigo: string): string => {
+    const p = productos.find((x) => x.codigo === codigo);
+    if (!p) return `No está el código ${codigo}. Créalo desde Vender.`;
+    agregar(p.id);
+    return `Agregado: ${p.nombre}`;
+  };
+
   return (
     <main className="pantalla">
       <Cabecera titulo="Ingresar mercadería" volver="" />
 
+      {escaneando && <Escaner alLeer={alLeerCodigo} alCerrar={() => setEscaneando(false)} />}
+
+      <div className="fila-busqueda">
       <div className="campo-con-icono">
         <Icono nombre="lupa" />
         <label className="sr-only" htmlFor="buscar-ingreso">Buscar producto o escribir código</label>
@@ -89,6 +101,10 @@ export function Ingreso() {
           }}
         />
       </div>
+      <button type="button" className="boton-escaner" aria-label={escaneando ? 'Cerrar el escáner' : 'Escanear código de barras'} aria-pressed={escaneando} onClick={() => setEscaneando((v) => !v)}>
+        <Icono nombre="escaner" tam={28} />
+      </button>
+    </div>
 
       {q ? (
         <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }} aria-label="Resultados">

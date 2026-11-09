@@ -78,6 +78,7 @@ export interface CambiosProducto {
   costo?: number;
   minimo?: number;
   seccionId?: string | null; // null = sin sección
+  codigo?: string | null; // código de barras; vacío o null = sin código
 }
 
 export async function actualizarProducto(db: BodegaDB, id: string, cambios: CambiosProducto) {
@@ -103,6 +104,14 @@ export async function actualizarProducto(db: BodegaDB, id: string, cambios: Camb
     nuevo.minimo = cambios.minimo;
   }
   if (cambios.seccionId !== undefined) nuevo.seccionId = cambios.seccionId ?? undefined;
+  if (cambios.codigo !== undefined) {
+    const codigo = cambios.codigo?.trim() || undefined;
+    if (codigo) {
+      const otros = await db.productos.where('codigo').equals(codigo).toArray();
+      if (otros.some((p) => p.id !== id)) throw new ErrorDeNegocio(`Ya existe un producto con ese código: ${otros[0].nombre}`);
+    }
+    nuevo.codigo = codigo;
+  }
   await db.productos.update(id, nuevo);
 }
 

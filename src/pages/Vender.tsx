@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { type FormEvent, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCarrito } from '../carrito';
+import { Escaner } from '../componentes/Escaner';
 import { db } from '../data/db';
 import { soles } from '../formato';
 import { Cabecera, Icono } from '../ui';
@@ -16,6 +17,8 @@ export function Vender() {
   const { state } = useLocation() as { state: { aviso?: string } | null };
   // Si el producto recién creado no pudo agregarse (ej. stock 0), se avisa aquí.
   const [mensaje, setMensaje] = useState<string | null>(state?.aviso ?? null);
+  const [escaneando, setEscaneando] = useState(false);
+  const [desconocido, setDesconocido] = useState<string | null>(null);
   const [editando, setEditando] = useState<string | null>(null);
   const [precioNuevo, setPrecioNuevo] = useState('');
 
@@ -32,6 +35,19 @@ export function Vender() {
     if (!p) return;
     setMensaje(carrito.agregar(p));
     setConsulta('');
+  };
+
+  // Cada código leído por la cámara se agrega a la venta; si no existe, se ofrece crearlo.
+  const alLeerCodigo = (codigo: string): string => {
+    const p = productos.find((x) => x.codigo === codigo);
+    if (!p) {
+      setDesconocido(codigo);
+      return `No está el código ${codigo}`;
+    }
+    setDesconocido(null);
+    const problema = carrito.agregar(p);
+    setMensaje(problema);
+    return problema ?? `Agregado: ${p.nombre}`;
   };
 
   // Enter con un código exacto (lector físico o escrito a mano) agrega directo.
@@ -52,24 +68,37 @@ export function Vender() {
     <main className="pantalla">
       <Cabecera titulo="Vender" volver="/" />
 
-      <form onSubmit={alEnviar} className="campo-con-icono">
-        <Icono nombre="lupa" />
-        <label className="sr-only" htmlFor="buscar">Buscar producto o escribir código</label>
-        <input
-          id="buscar"
-          className="campo"
-          placeholder="Buscar o escribir código"
-          value={consulta}
-          onChange={(e) => {
-            setConsulta(e.target.value);
-            setMensaje(null);
-          }}
-          autoComplete="off"
-          inputMode="search"
-        />
-      </form>
+      {escaneando && <Escaner alLeer={alLeerCodigo} alCerrar={() => setEscaneando(false)} />}
+
+      <div className="fila-busqueda">
+        <form onSubmit={alEnviar} className="campo-con-icono">
+          <Icono nombre="lupa" />
+          <label className="sr-only" htmlFor="buscar">Buscar producto o escribir código</label>
+          <input
+            id="buscar"
+            className="campo"
+            placeholder="Buscar o escribir código"
+            value={consulta}
+            onChange={(e) => {
+              setConsulta(e.target.value);
+              setMensaje(null);
+            }}
+            autoComplete="off"
+            inputMode="search"
+          />
+        </form>
+        <button type="button" className="boton-escaner" aria-label={escaneando ? 'Cerrar el escáner' : 'Escanear código de barras'} aria-pressed={escaneando} onClick={() => setEscaneando((v) => !v)}>
+          <Icono nombre="escaner" tam={28} />
+        </button>
+      </div>
 
       {mensaje && <div className="error" role="alert">{mensaje}</div>}
+
+      {desconocido && (
+        <button className="boton" style={{ minHeight: 60, fontSize: 18, borderRadius: 18 }} onClick={() => navegar('/producto/nuevo', { state: { consulta: desconocido } })}>
+          Agregar el código {desconocido} como producto nuevo
+        </button>
+      )}
 
       {q ? (
         <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }} aria-label="Resultados">
