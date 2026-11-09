@@ -1,0 +1,82 @@
+// Modelo de datos. Todos los registros llevan `bodegaId` (hoy una sola bodega)
+// e ids UUID, para poder sincronizar y replicar en más bodegas sin migrar.
+
+export type Id = string;
+
+export interface Seccion {
+  id: Id;
+  bodegaId: Id;
+  nombre: string;
+  color: string;
+}
+
+export interface Producto {
+  id: Id;
+  bodegaId: Id;
+  nombre: string;
+  codigo?: string; // código de barras
+  seccionId?: Id;
+  costo: number;
+  precio: number;
+  stock: number; // cache; la verdad está en `movimientos`
+  minimo: number; // avisar cuando queden <= minimo
+  actualizadoEn: string;
+}
+
+export interface Cliente {
+  id: Id;
+  bodegaId: Id;
+  nombre: string;
+  telefono?: string;
+}
+
+export type MetodoPago = 'efectivo' | 'digital' | 'fiado';
+
+export interface Venta {
+  id: Id;
+  bodegaId: Id;
+  fecha: string; // ISO
+  total: number;
+  metodo: MetodoPago;
+  clienteId?: Id;
+  pagoCon?: number; // efectivo recibido
+  vuelto?: number;
+  anulada?: boolean;
+}
+
+export interface LineaVenta {
+  id: Id;
+  ventaId: Id;
+  productoId: Id;
+  nombre: string; // copia, por si luego cambia el nombre
+  cantidad: number;
+  precio: number; // precio al que se vendió (puede diferir del catálogo)
+  costo: number;
+}
+
+export type TipoMovimiento = 'venta' | 'ingreso' | 'ajuste' | 'conteo' | 'anulacion';
+
+export interface Movimiento {
+  id: Id;
+  bodegaId: Id;
+  productoId: Id;
+  tipo: TipoMovimiento;
+  cantidad: number; // con signo: +entra, -sale
+  ref?: Id; // venta, ingreso o conteo que lo originó
+  fecha: string;
+}
+
+export interface Abono {
+  id: Id;
+  bodegaId: Id;
+  clienteId: Id;
+  monto: number;
+  fecha: string;
+}
+
+/** Línea del carrito antes de cobrar. */
+export interface ItemCarrito {
+  productoId: Id;
+  cantidad: number;
+  precio: number; // editable al vender ("solo esta venta")
+}

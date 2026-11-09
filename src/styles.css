@@ -1,0 +1,108 @@
+:root {
+  --crema: #fff8ec;
+  --tinta: #2b2118;
+  --suave: #6b5b4b;
+  --linea: #eadfcb;
+  --verde: #1b7f45;
+  --verde-osc: #135c32;
+  --verde-claro: #e4f2d9;
+  --azul-claro: #dcebff;
+  --azul-tinta: #12325c;
+  --ambar: #ffe3b0;
+  --ambar-tinta: #4a2e00;
+  --rojo-claro: #ffd9d2;
+  --rojo-tinta: #6b1d10;
+  --blanco: #ffffff;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--crema);
+  color: var(--tinta);
+  font-family: 'Nunito', system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a { color: inherit; text-decoration: none; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+
+.pantalla {
+  max-width: 480px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: max(24px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cabecera { display: flex; align-items: center; gap: 10px; }
+.cabecera h1 { margin: 0; font-size: 28px; font-weight: 800; }
+.atras {
+  flex: none; width: 48px; height: 48px; border-radius: 16px; border: 0;
+  background: var(--blanco); box-shadow: 0 2px 0 var(--linea);
+  display: flex; align-items: center; justify-content: center;
+}
+
+.tarjeta { background: var(--blanco); border-radius: 22px; padding: 14px 18px; box-shadow: 0 2px 0 var(--linea); }
+.relleno { flex-grow: 1; }
+
+.boton {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 64px; border: 0; border-radius: 22px; font-size: 22px; font-weight: 800;
+  background: var(--verde); color: #fff; box-shadow: 0 5px 0 var(--verde-osc);
+}
+.boton:disabled { opacity: 0.45; box-shadow: none; cursor: not-allowed; }
+.boton.claro { background: var(--blanco); color: var(--tinta); box-shadow: 0 4px 0 var(--linea); }
+.boton.borde { background: transparent; color: var(--tinta); box-shadow: none; border: 2px solid var(--tinta); }
+
+.campo {
+  width: 100%; height: 56px; border: 2px solid #d9cdb8; border-radius: 16px;
+  padding: 0 14px; background: var(--blanco); font-size: 20px; font-weight: 700;
+}
+.campo:focus { outline: 3px solid var(--verde); border-color: var(--verde); }
+
+.fila {
+  display: flex; align-items: center; gap: 10px; background: var(--blanco);
+  border-radius: 16px; padding: 8px 12px; min-height: 56px; box-shadow: 0 2px 0 var(--linea);
+}
+.fila .nombre { flex-grow: 1; min-width: 0; font-size: 17px; font-weight: 800; }
+.fila .sub { font-size: 14px; font-weight: 600; color: var(--suave); }
+
+.paso {
+  width: 44px; height: 44px; border-radius: 14px; border: 0; font-size: 26px; font-weight: 800;
+}
+.paso.menos { background: var(--ambar); color: var(--ambar-tinta); }
+.paso.mas { background: var(--verde-claro); color: #1e4d12; }
+
+.etiqueta { font-size: 13px; font-weight: 800; padding: 1px 10px; border-radius: 999px; display: inline-block; }
+.etiqueta.poco { background: var(--ambar); color: var(--ambar-tinta); }
+.etiqueta.agotado { background: var(--rojo-claro); color: var(--rojo-tinta); }
+.etiqueta.bien { background: var(--verde-claro); color: #1e4d12; }
+
+.aviso { background: var(--ambar); color: var(--ambar-tinta); border-radius: 18px; padding: 12px 16px; font-weight: 800; }
+.error { background: var(--rojo-claro); color: var(--rojo-tinta); border-radius: 14px; padding: 10px 14px; font-weight: 800; }
+
+.inicio-grande {
+  flex-direction: column; height: 150px; font-size: 34px; border-radius: 28px;
+  box-shadow: 0 6px 0 var(--verde-osc);
+}
+.dos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.mosaico {
+  border-radius: 22px; padding: 16px; min-height: 120px; display: flex; flex-direction: column; gap: 6px;
+}
+.mosaico b { font-size: 20px; font-weight: 800; }
+.mosaico span { font-size: 15px; font-weight: 600; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+.pago-btn { justify-content: flex-start; padding: 0 22px; min-height: 84px; font-size: 26px; }
+.billetes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.billete {
+  height: 64px; border-radius: 18px; border: 3px solid #d9cdb8; background: var(--blanco);
+  font-size: 22px; font-weight: 800;
+}
+.billete[aria-pressed='true'] { background: var(--tinta); color: #fff; border-color: var(--tinta); }
