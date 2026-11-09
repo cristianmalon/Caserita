@@ -4,8 +4,11 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 // mode "artifact": versión de una sola página para publicar como Artifact (sin service worker).
+// BASE_PATH permite publicar en una subcarpeta (GitHub Pages: /Caserita/).
+const base = (mode: string) => process.env.BASE_PATH ?? (mode === 'artifact' ? './' : '/');
+
 export default defineConfig(({ mode }) => ({
-  base: mode === 'artifact' ? './' : '/',
+  base: base(mode),
   build: mode === 'artifact' ? { outDir: 'dist-artifact', assetsInlineLimit: 100000000 } : {},
   plugins: [
     react(),
@@ -22,7 +25,8 @@ export default defineConfig(({ mode }) => ({
         background_color: '#FFF8EC',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
+        start_url: base(mode),
+        scope: base(mode),
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },

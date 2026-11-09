@@ -9,7 +9,7 @@ const Router = import.meta.env.MODE === 'artifact' ? MemoryRouter : BrowserRoute
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Router>
+    <Router basename={import.meta.env.MODE === 'artifact' ? undefined : import.meta.env.BASE_URL}>
       <App />
     </Router>
   </StrictMode>,
