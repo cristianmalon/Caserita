@@ -1,5 +1,5 @@
 import { BODEGA_ID, type BodegaDB, ahora, nuevoId } from '../data/db';
-import { ErrorDeNegocio, diaLocal, redondear, redondearCantidad, validarCantidad } from './operaciones';
+import { ErrorDeNegocio, ID_VARIOS, diaLocal, redondear, redondearCantidad, validarCantidad } from './operaciones';
 import type { Cliente, Conteo, LineaVenta, Producto, Seccion, Unidad, Venta } from './types';
 
 const COLORES = ['#F2A33A', '#3B82C4', '#D9534F', '#1B7F45', '#8B6B4A', '#7A5BA6', '#2A9D8F'];
@@ -355,4 +355,26 @@ export async function restaurarRespaldo(db: BodegaDB, bruto: unknown): Promise<n
     }
   });
   return r.datos.productos.length;
+}
+
+// ---------- Accesos rápidos ----------
+
+/**
+ * Ids de los productos que más se vendieron en los últimos días (por número de ventas en que aparecen).
+ * Sirve para llenar la pantalla de Vender con lo que el bodeguero realmente despacha.
+ */
+export async function masVendidos(db: BodegaDB, dias = 30, limite = 12): Promise<string[]> {
+  const desde = new Date(Date.now() - dias * 86_400_000).toISOString();
+  const vigentes = new Set(
+    (await db.ventas.toArray()).filter((v) => !v.anulada && v.fecha >= desde).map((v) => v.id),
+  );
+  const veces = new Map<string, number>();
+  for (const linea of await db.lineas.toArray()) {
+    if (!vigentes.has(linea.ventaId) || linea.productoId === ID_VARIOS) continue;
+    veces.set(linea.productoId, (veces.get(linea.productoId) ?? 0) + 1);
+  }
+  return [...veces.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limite)
+    .map(([id]) => id);
 }

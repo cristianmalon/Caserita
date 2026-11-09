@@ -1,5 +1,5 @@
 import { type ReactNode, createContext, useContext, useMemo, useState } from 'react';
-import { redondearCantidad, totalCarrito } from './domain/operaciones';
+import { ID_VARIOS, redondear, redondearCantidad, totalCarrito } from './domain/operaciones';
 import type { ItemCarrito, Producto } from './domain/types';
 
 interface Carrito {
@@ -8,6 +8,8 @@ interface Carrito {
   clienteId: string | null; // cliente de la venta (opcional; obligatorio para fiar)
   seleccionarCliente: (id: string | null) => void;
   agregar: (producto: Producto) => string | null; // devuelve un mensaje si no se pudo
+  /** Venta rápida: suma un monto al renglón «Varios» (producto sin catálogo ni inventario). */
+  agregarVarios: (monto: number) => void;
   cambiar: (productoId: string, delta: number, stockMaximo: number) => void;
   /** Fija una cantidad exacta (por peso). Devuelve un mensaje si pasa del stock. */
   fijarCantidad: (productoId: string, cantidad: number, stockMaximo: number) => string | null;
@@ -38,6 +40,12 @@ export function CarritoProvider({ children }: { children: ReactNode }) {
         );
         return null;
       },
+      agregarVarios: (monto) =>
+        setItems((prev) =>
+          prev.some((i) => i.productoId === ID_VARIOS)
+            ? prev.map((i) => (i.productoId === ID_VARIOS ? { ...i, precio: redondear(i.precio + monto) } : i))
+            : [...prev, { productoId: ID_VARIOS, cantidad: 1, precio: redondear(monto) }],
+        ),
       cambiar: (productoId, delta, stockMaximo) =>
         setItems((prev) =>
           prev

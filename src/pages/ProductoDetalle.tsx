@@ -28,6 +28,7 @@ export function ProductoDetalle() {
   const [stock, setStockNumero] = useState(0);
   const [stockTexto, setStockTexto] = useState('0');
   const [unidad, setUnidad] = useState<'unidad' | 'kg'>('unidad');
+  const [favorito, setFavorito] = useState(false);
   const [seccionId, setSeccionId] = useState<string | undefined>();
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -43,6 +44,7 @@ export function ProductoDetalle() {
       setStockNumero(producto.stock);
       setStockTexto(String(producto.stock));
       setUnidad(producto.unidad ?? 'unidad');
+      setFavorito(!!producto.favorito);
       setSeccionId(producto.seccionId);
       setCargado(true);
     }
@@ -85,6 +87,7 @@ export function ProductoDetalle() {
         minimo: Number(minimo),
         seccionId: seccionId ?? null,
         unidad,
+        favorito,
       });
       if (stock !== producto.stock) await ajustarStock(db, id, stock, 'ajuste');
       navegar('/inventario', { replace: true, state: { mensaje: `${nombre.trim()} guardado` } });
@@ -124,6 +127,10 @@ export function ProductoDetalle() {
         </div>
 
         {etiqueta('Nombre', <input className="campo" value={nombre} onChange={(e) => setNombre(e.target.value)} autoComplete="off" />)}
+
+        <button type="button" aria-pressed={favorito} onClick={() => setFavorito((f) => !f)} style={{ minHeight: 56, border: 0, borderRadius: 16, fontSize: 18, fontWeight: 800, background: favorito ? 'var(--ambar)' : 'var(--blanco)', color: favorito ? 'var(--ambar-tinta)' : 'var(--tinta)', boxShadow: '0 2px 0 var(--linea)' }}>
+          {favorito ? '★ Aparece en Vender' : '☆ Mostrar en Vender (favorito)'}
+        </button>
 
         <div role="group" aria-label="Cómo se vende" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ fontSize: 16, fontWeight: 800 }}>Se vende</div>

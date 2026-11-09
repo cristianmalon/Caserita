@@ -159,8 +159,8 @@ describe('resumenDeDeudas', () => {
   });
 });
 
-import { anularVenta, resumenDeCaja, diaLocal } from './operaciones';
-import { exportarRespaldo, restaurarRespaldo, ventasDelDia } from './gestion';
+import { ID_VARIOS, anularVenta, asegurarVarios, resumenDeCaja, diaLocal } from './operaciones';
+import { exportarRespaldo, masVendidos, restaurarRespaldo, ventasDelDia } from './gestion';
 
 describe('caja del día', () => {
   it('calcula la ganancia y excluye las ventas anuladas; el detalle sí las incluye', async () => {
@@ -201,5 +201,35 @@ describe('respaldo', () => {
     await expect(restaurarRespaldo(otra, { hola: 1 })).rejects.toThrow('no es un respaldo');
     await expect(restaurarRespaldo(otra, { app: 'caserita', version: 1, datos: { productos: [] } })).rejects.toThrow('incompleto');
     expect((await otra.productos.get(p))!.stock).toBe(8); // un archivo inválido no borra nada
+  });
+});
+
+describe('masVendidos', () => {
+  it('ordena por número de ventas, ignora anuladas, antiguas y «Varios»', async () => {
+    const pan = await producto('Pan', 100);
+    const leche = await producto('Leche', 100);
+    const arroz = await producto('Arroz', 100);
+    await producto('Nunca vendido', 100);
+    const vender = (id: string) => registrarVenta(db, { items: [{ productoId: id, cantidad: 1, precio: 5 }], metodo: 'digital' });
+
+    await vender(pan); await vender(pan); await vender(pan);
+    await vender(leche); await vender(leche);
+    const vieja = await vender(arroz);
+    await db.ventas.update(vieja.id, { fecha: '2020-01-01T10:00:00.000Z' }); // fuera de los 30 días
+    const anulada = await vender(arroz);
+    await anularVenta(db, anulada.id);
+    await asegurarVarios(db);
+    await registrarVenta(db, { items: [{ productoId: ID_VARIOS, cantidad: 1, precio: 3 }], metodo: 'efectivo' });
+
+    expect(await masVendidos(db)).toEqual([pan, leche]);
+    expect(await masVendidos(db, 30, 1)).toEqual([pan]);
+  });
+
+  it('un producto se marca y desmarca como favorito', async () => {
+    const p = await producto('Pan', 10);
+    await actualizarProducto(db, p, { favorito: true });
+    expect((await db.productos.get(p))!.favorito).toBe(true);
+    await actualizarProducto(db, p, { favorito: false });
+    expect((await db.productos.get(p))!.favorito).toBeUndefined();
   });
 });

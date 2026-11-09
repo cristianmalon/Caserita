@@ -52,6 +52,20 @@ export function FilaCarrito({ item, producto: p }: { item: ItemCarrito; producto
 
   const paso = porPeso ? 0.25 : 1;
 
+  // Venta rápida: un solo monto, sin cantidad ni inventario.
+  if (p.sinStock) {
+    return (
+      <div className="fila">
+        <div className="nombre">
+          Venta rápida
+          <span className="sub" style={{ display: 'block' }}>Sin producto de tu lista</span>
+        </div>
+        <b style={{ fontSize: 20 }}>{soles(item.precio)}</b>
+        <button className="paso menos" aria-label="Quitar la venta rápida" onClick={() => carrito.cambiar(item.productoId, -1, 1)}>✕</button>
+      </div>
+    );
+  }
+
   return (
     <div className="fila" style={{ flexWrap: 'wrap' }}>
       <div className="nombre">

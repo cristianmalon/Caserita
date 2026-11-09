@@ -330,7 +330,7 @@ export async function asegurarVarios(db: BodegaDB) {
   const varios = {
     id: ID_VARIOS,
     bodegaId: BODEGA_ID,
-    nombre: 'Varios',
+    nombre: 'Venta rápida',
     costo: 0,
     precio: 1,
     stock: 0,

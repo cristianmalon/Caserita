@@ -2,9 +2,11 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { type FormEvent, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCarrito } from '../carrito';
+import { AccesosRapidos } from '../componentes/AccesosRapidos';
 import { Escaner } from '../componentes/Escaner';
 import { FilaCarrito } from '../componentes/FilaCarrito';
 import { db } from '../data/db';
+import { asegurarVarios } from '../domain/operaciones';
 import { formatoCantidad, soles } from '../formato';
 import { Cabecera, Icono } from '../ui';
 
@@ -118,11 +120,21 @@ export function Vender() {
           </button>
         </section>
       ) : (
+        <>
+        <AccesosRapidos
+          productos={productos}
+          limite={carrito.items.length === 0 ? 9 : 6}
+          alAgregar={agregar}
+          alVentaRapida={async (monto) => {
+            await asegurarVarios(db); // crea «Varios» la primera vez
+            carrito.agregarVarios(monto);
+          }}
+        />
         <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }} aria-label="Productos de la venta">
           {carrito.items.length === 0 && (
             <div className="vacio">
               <div className="circulo"><Icono nombre="carrito" tam={34} /></div>
-              Tu venta está vacía.<br />Escribe el nombre o el código de un producto para empezar.
+              Tu venta está vacía.<br />Toca un producto, escanéalo o escribe su nombre para empezar.
             </div>
           )}
           {carrito.items.map((item) => {
@@ -130,6 +142,7 @@ export function Vender() {
             return p ? <FilaCarrito key={item.productoId} item={item} producto={p} /> : null;
           })}
         </section>
+        </>
       )}
 
       <div className="relleno" />
