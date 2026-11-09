@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useCarrito } from '../carrito';
 import { db } from '../data/db';
 import { ErrorDeNegocio, crearProducto } from '../domain/operaciones';
+import { SelectorSeccion } from '../componentes/SelectorSeccion';
 import { Cabecera } from '../ui';
 
 // Lo que se escribió en la búsqueda: si parece un código de barras (solo números), va al código.
@@ -22,6 +23,7 @@ export function ProductoNuevo() {
   const [precio, setPrecio] = useState('');
   const [stock, setStock] = useState('1');
   const [costo, setCosto] = useState('');
+  const [seccionId, setSeccionId] = useState<string | undefined>();
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
 
@@ -47,6 +49,7 @@ export function ProductoNuevo() {
         precio: aNumero(precio),
         stock: aNumero(stock),
         costo: costo ? aNumero(costo) : undefined,
+        seccionId,
       });
       const problema = carrito.agregar(producto);
       navegar('/vender', { replace: true, state: problema ? { aviso: problema } : null });
@@ -104,6 +107,8 @@ export function ProductoNuevo() {
             <input className="campo" inputMode="decimal" placeholder="S/" value={costo} onChange={(e) => setCosto(e.target.value)} />
           </label>
         </div>
+
+        <SelectorSeccion valor={seccionId} onChange={setSeccionId} />
 
         {error && <div className="error" role="alert">{error}</div>}
 

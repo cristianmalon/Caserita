@@ -237,6 +237,7 @@ export interface DatosProducto {
   costo?: number;
   stock: number;
   minimo?: number;
+  seccionId?: string;
 }
 
 /** Crea un producto nuevo. El stock inicial queda registrado como un ingreso. */
@@ -262,6 +263,7 @@ export async function crearProducto(db: BodegaDB, datos: DatosProducto) {
     precio: redondear(datos.precio),
     stock: datos.stock,
     minimo: datos.minimo ?? 5,
+    seccionId: datos.seccionId,
     actualizadoEn: ahora(),
   };
 

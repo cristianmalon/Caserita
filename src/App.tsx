@@ -5,8 +5,12 @@ import { ElegirCliente } from './pages/ElegirCliente';
 import { Efectivo } from './pages/Efectivo';
 import { Fiados } from './pages/Fiados';
 import { Fiar } from './pages/Fiar';
+import { Ingreso } from './pages/Ingreso';
 import { Inicio } from './pages/Inicio';
+import { Inventario } from './pages/Inventario';
+import { ProductoDetalle } from './pages/ProductoDetalle';
 import { ProductoNuevo } from './pages/ProductoNuevo';
+import { Secciones } from './pages/Secciones';
 import { Vender } from './pages/Vender';
 import { Pronto } from './ui';
 
@@ -22,7 +26,10 @@ export function App() {
         <Route path="/cliente" element={<ElegirCliente />} />
         <Route path="/fiado" element={<Fiar />} />
         <Route path="/fiados" element={<Fiados />} />
-        <Route path="/inventario" element={<Pronto titulo="Inventario" />} />
+        <Route path="/inventario" element={<Inventario />} />
+        <Route path="/producto/:id" element={<ProductoDetalle />} />
+        <Route path="/ingreso" element={<Ingreso />} />
+        <Route path="/secciones" element={<Secciones />} />
         <Route path="/todo" element={<Pronto titulo="Todo mi negocio" />} />
         <Route path="*" element={<Pronto titulo="No encontrada" />} />
       </Routes>

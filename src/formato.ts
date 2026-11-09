@@ -16,3 +16,23 @@ export const haceCuanto = (iso: string, ahora = new Date()): string => {
   if (dias === 1) return 'ayer';
   return `hace ${dias} días`;
 };
+
+export type EstadoStock = 'agotado' | 'poco' | 'bien';
+
+/** Agotado = 0; pocos = quedan hasta el mínimo que avisa cada producto. */
+export const estadoDeStock = (p: { stock: number; minimo: number }): EstadoStock =>
+  p.stock <= 0 ? 'agotado' : p.stock <= p.minimo ? 'poco' : 'bien';
+
+export const ETIQUETA_ESTADO: Record<EstadoStock, string> = {
+  agotado: 'Agotado',
+  poco: 'Quedan pocos',
+  bien: 'Hay suficiente',
+};
+
+export const ETIQUETA_MOVIMIENTO: Record<string, string> = {
+  venta: 'Venta',
+  ingreso: 'Ingreso',
+  ajuste: 'Ajuste',
+  conteo: 'Conteo',
+  anulacion: 'Venta anulada',
+};
