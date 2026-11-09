@@ -14,8 +14,8 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Mi Bodega',
-        short_name: 'Mi Bodega',
+        name: 'Caserita',
+        short_name: 'Caserita',
         description: 'Ventas, fiados e inventario para tu bodega',
         lang: 'es',
         theme_color: '#1B7F45',

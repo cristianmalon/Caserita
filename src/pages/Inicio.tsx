@@ -27,7 +27,7 @@ export function Inicio() {
     <main className="pantalla">
       <div>
         <div style={{ fontWeight: 600, color: 'var(--suave)' }}>Hola, buen día</div>
-        <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800 }}>Mi Bodega</h1>
+        <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800 }}>Caserita</h1>
       </div>
 
       {state?.mensaje && (

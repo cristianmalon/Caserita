@@ -1,4 +1,4 @@
-# Mi Bodega
+# Caserita
 
 App web (PWA) para llevar una bodega de barrio: vender escaneando o buscando, cobrar en efectivo con vuelto o por Yape, y (próximamente) fiados, inventario y conteo por sección.
 
